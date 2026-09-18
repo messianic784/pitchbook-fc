@@ -45,9 +45,10 @@ import {
   MapPin,
   SlidersHorizontal,
   Briefcase,
+  Layers,
 } from "lucide-react";
 
-type Formation = "4-3-3" | "4-2-3-1" | "3-5-2" | "4-4-2";
+type Formation = "4-3-3" | "4-2-3-1" | "3-5-2" | "4-4-2" | "custom";
 type ExecutiveRole = "Head Coach" | "Sporting Director" | "Chief Medical Officer" | "Club Executive / CEO";
 
 interface Player {
@@ -207,6 +208,12 @@ export default function DashboardPage() {
   const [selectedScoutTarget, setSelectedScoutTarget] = useState<ScoutTarget | null>(null);
   const [scoutCategoryFilter, setScoutCategoryFilter] = useState<string>("All");
 
+  // CUSTOM FORMATION STATE
+  const [customDef, setCustomDef] = useState<number>(3);
+  const [customMid, setCustomMid] = useState<number>(4);
+  const [customFwd, setCustomFwd] = useState<number>(3);
+  const [customTacticPreset, setCustomTacticPreset] = useState<string>("3-4-3 Fluid Press");
+
   // Financial PSR Simulator Interactive State
   const [simulatedTransferSpend, setSimulatedTransferSpend] = useState(0);
   const [simulatedPlayerSales, setSimulatedPlayerSales] = useState(0);
@@ -246,6 +253,13 @@ export default function DashboardPage() {
       );
     }
     setSelectedPlayerToSwap(null);
+  };
+
+  const setPresetCustom = (def: number, mid: number, fwd: number, label: string) => {
+    setCustomDef(def);
+    setCustomMid(mid);
+    setCustomFwd(fwd);
+    setCustomTacticPreset(label);
   };
 
   const renderPlayerCard = (player: Player, fatigueRate: number, customWidth = "w-32 sm:w-36") => {
@@ -385,17 +399,49 @@ export default function DashboardPage() {
       );
     }
 
+    if (formation === "4-4-2") {
+      return (
+        <div className="relative z-10 space-y-6 my-2 min-h-[520px] flex flex-col justify-between">
+          <div className="flex justify-center gap-12 items-center px-8">
+            {[starters[9], starters[10]].map((player) => renderPlayerCard(player, 0.45))}
+          </div>
+          <div className="flex justify-around items-center px-4">
+            {[starters[8], starters[5], starters[6], starters[7]].map((player) => renderPlayerCard(player, 0.46))}
+          </div>
+          <div className="flex justify-around items-center px-2">
+            {starters.slice(1, 5).map((player) => renderPlayerCard(player, 0.40))}
+          </div>
+          <div className="flex justify-center items-center">
+            {renderGoalkeeperCard(starters[0])}
+          </div>
+        </div>
+      );
+    }
+
+    // CUSTOM FORMATION DYNAMIC TACTICAL ROWS
+    const fwdCount = customFwd;
+    const defCount = customDef;
+    const midCount = 10 - fwdCount - defCount;
+
+    const fwdPlayers = starters.slice(11 - fwdCount, 11);
+    const defPlayers = starters.slice(1, 1 + defCount);
+    const midPlayers = starters.slice(1 + defCount, 11 - fwdCount);
+
     return (
       <div className="relative z-10 space-y-6 my-2 min-h-[520px] flex flex-col justify-between">
-        <div className="flex justify-center gap-12 items-center px-8">
-          {[starters[9], starters[10]].map((player) => renderPlayerCard(player, 0.45))}
-        </div>
+        {/* Custom Forward Line */}
         <div className="flex justify-around items-center px-4">
-          {[starters[8], starters[5], starters[6], starters[7]].map((player) => renderPlayerCard(player, 0.46))}
+          {fwdPlayers.map((player) => renderPlayerCard(player, 0.46, fwdCount > 2 ? "w-28 sm:w-32 text-[10px]" : "w-32 sm:w-36"))}
         </div>
+        {/* Custom Midfield Line */}
         <div className="flex justify-around items-center px-2">
-          {starters.slice(1, 5).map((player) => renderPlayerCard(player, 0.40))}
+          {midPlayers.map((player) => renderPlayerCard(player, 0.48, midCount > 4 ? "w-24 sm:w-28 text-[9px]" : "w-28 sm:w-32"))}
         </div>
+        {/* Custom Defense Line */}
+        <div className="flex justify-around items-center px-2">
+          {defPlayers.map((player) => renderPlayerCard(player, 0.40, defCount > 4 ? "w-24 sm:w-28 text-[9px]" : "w-28 sm:w-32"))}
+        </div>
+        {/* Goalkeeper */}
         <div className="flex justify-center items-center">
           {renderGoalkeeperCard(starters[0])}
         </div>
@@ -575,14 +621,14 @@ export default function DashboardPage() {
                     <h1 className="text-xl font-bold text-white">Tactical Pitchboard & Match Lineup</h1>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Click any player card to inspect attribute dossier, or click two players sequentially to swap tactical positions
+                    Select standard formations or build a bespoke Custom Tactical System with custom outfield distribution
                   </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex items-center gap-1.5 bg-[#141d2b] border border-white/10 px-3 py-1.5 rounded-lg text-xs">
                     <Sliders className="size-3.5 text-[#0fa05c]" />
-                    <span className="text-slate-400">Tactical Formation:</span>
+                    <span className="text-slate-400">Formation:</span>
                     <select
                       value={formation}
                       onChange={(e) => setFormation(e.target.value as Formation)}
@@ -592,6 +638,7 @@ export default function DashboardPage() {
                       <option value="4-2-3-1" className="bg-[#141d2b]">4-2-3-1 Modern High Press</option>
                       <option value="3-5-2" className="bg-[#141d2b]">3-5-2 Wingback Overload</option>
                       <option value="4-4-2" className="bg-[#141d2b]">4-4-2 Compact Low Block</option>
+                      <option value="custom" className="bg-[#141d2b]">⚡ Custom Tactical Shape</option>
                     </select>
                   </div>
 
@@ -620,6 +667,111 @@ export default function DashboardPage() {
                 </div>
               </div>
 
+              {/* DEDICATED CUSTOM FORMATION BUILDER PANEL (WHEN CUSTOM IS SELECTED) */}
+              {formation === "custom" && (
+                <div className="rounded-xl border border-emerald-500/30 bg-[#0c1a14] p-4 space-y-3 shadow-lg">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <Layers className="size-4 text-[#0fa05c]" />
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                        Custom Tactical Architecture Builder: <span className="text-[#0fa05c] font-mono">{customDef}-{10 - customDef - customFwd}-{customFwd}</span>
+                      </h3>
+                    </div>
+                    <span className="text-[11px] font-mono text-emerald-400 bg-emerald-500/15 px-2.5 py-0.5 rounded border border-emerald-500/30">
+                      Active: {customTacticPreset}
+                    </span>
+                  </div>
+
+                  {/* Preset Quick Selectors */}
+                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="text-slate-400 text-[11px]">System Presets:</span>
+                    {[
+                      { def: 3, mid: 4, fwd: 3, label: "3-4-3 Fluid Press" },
+                      { def: 4, mid: 5, fwd: 1, label: "4-1-4-1 Midfield Lock" },
+                      { def: 5, mid: 3, fwd: 2, label: "5-3-2 Low Block Counter" },
+                      { def: 4, mid: 4, fwd: 2, label: "4-3-1-2 Narrow Diamond" },
+                      { def: 3, mid: 5, fwd: 2, label: "3-5-2 Inverted Pivot" },
+                    ].map((pre) => (
+                      <button
+                        key={pre.label}
+                        type="button"
+                        onClick={() => setPresetCustom(pre.def, pre.mid, pre.fwd, pre.label)}
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition cursor-pointer border ${
+                          customTacticPreset === pre.label
+                            ? "bg-[#0fa05c] text-white border-[#0fa05c] shadow-sm"
+                            : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10 hover:text-white"
+                        }`}
+                      >
+                        {pre.def}-{pre.mid}-{pre.fwd} ({pre.label.split(" ")[1]})
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Interactive Outfield Line Steppers */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div className="bg-black/40 border border-white/5 p-2.5 rounded-lg flex items-center justify-between">
+                      <span className="text-xs text-slate-300">Defenders (Backline):</span>
+                      <div className="flex items-center gap-1.5">
+                        {[3, 4, 5].map((count) => (
+                          <button
+                            key={count}
+                            type="button"
+                            onClick={() => {
+                              const newFwd = Math.min(customFwd, 10 - count - 1);
+                              setCustomDef(count);
+                              setCustomFwd(newFwd);
+                              setCustomTacticPreset(`Custom ${count}-${10 - count - newFwd}-${newFwd}`);
+                            }}
+                            className={`size-7 rounded text-xs font-bold transition cursor-pointer ${
+                              customDef === count
+                                ? "bg-[#0fa05c] text-white shadow"
+                                : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+                            }`}
+                          >
+                            {count}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="bg-black/40 border border-white/5 p-2.5 rounded-lg flex items-center justify-between">
+                      <span className="text-xs text-slate-300">Midfielders (Central & Wings):</span>
+                      <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-500/10 px-2.5 py-1 rounded border border-cyan-500/20">
+                        {10 - customDef - customFwd} Players
+                      </span>
+                    </div>
+
+                    <div className="bg-black/40 border border-white/5 p-2.5 rounded-lg flex items-center justify-between">
+                      <span className="text-xs text-slate-300">Attackers (Forward Line):</span>
+                      <div className="flex items-center gap-1.5">
+                        {[1, 2, 3, 4].map((count) => {
+                          const disabled = count >= 10 - customDef;
+                          return (
+                            <button
+                              key={count}
+                              type="button"
+                              disabled={disabled}
+                              onClick={() => {
+                                setCustomFwd(count);
+                                setCustomTacticPreset(`Custom ${customDef}-${10 - customDef - count}-${count}`);
+                              }}
+                              className={`size-7 rounded text-xs font-bold transition cursor-pointer disabled:opacity-20 ${
+                                customFwd === count
+                                  ? "bg-[#0fa05c] text-white shadow"
+                                  : "bg-white/5 text-slate-400 hover:text-white hover:bg-white/10"
+                              }`}
+                            >
+                              {count}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* In-Game Match Minute Fatigue Simulation Slider */}
               <div className="bg-[#0b121c] border border-white/10 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Clock className="size-4 text-[#0fa05c]" />
@@ -667,7 +819,9 @@ export default function DashboardPage() {
                       <span className="font-extrabold text-[#0fa05c] tracking-widest uppercase text-sm">
                         RIVERSIDE STADIUM (HOME)
                       </span>
-                      <span className="text-[11px] text-white/60">· 105m × 68m Hybrid Grass</span>
+                      <span className="text-[11px] text-white/60">
+                        · {formation === "custom" ? `Custom ${customDef}-${10 - customDef - customFwd}-${customFwd}` : formation}
+                      </span>
                     </div>
                     {selectedPlayerToSwap && (
                       <span className="rounded-full bg-amber-400 text-black px-3 py-1 font-bold text-xs animate-bounce shadow-lg">
@@ -729,7 +883,9 @@ export default function DashboardPage() {
                       <span>Tactical Intelligence Engine</span>
                     </div>
                     <p className="text-xs text-slate-300 leading-relaxed">
-                      Lakeside United tire after minute 70&apos; in their double-pivot. Introducing <strong>Samuel Eto&apos;o Jr</strong> provides an immediate +28% aerial threat against their exhausted right-sided center-half.
+                      {formation === "custom"
+                        ? `Custom system ${customDef}-${10 - customDef - customFwd}-${customFwd} balances transitional coverage with a +${customFwd * 9}% final-third overload.`
+                        : "Lakeside United tire after minute 70' in their double-pivot. Introducing Samuel Eto'o Jr provides an immediate +28% aerial threat against their exhausted center-half."}
                     </p>
                   </div>
                 </div>
@@ -1417,7 +1573,9 @@ export default function DashboardPage() {
                   <p className="text-slate-400 text-xs">Kickoff: Saturday 15:00 GMT · Riverside Stadium</p>
                 </div>
                 <div className="text-right font-mono text-[11px]">
-                  <p className="text-white font-bold">Formation: {formation}</p>
+                  <p className="text-white font-bold">
+                    Formation: {formation === "custom" ? `Custom (${customDef}-${10 - customDef - customFwd}-${customFwd}) - ${customTacticPreset}` : formation}
+                  </p>
                   <p className="text-emerald-400">Match Readiness: 94.2%</p>
                 </div>
               </div>

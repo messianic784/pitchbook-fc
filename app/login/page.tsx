@@ -12,6 +12,7 @@ import {
   Trophy,
   Activity,
   CheckCircle2,
+  Zap,
 } from "lucide-react";
 
 interface DemoAccount {
@@ -80,11 +81,18 @@ export default function LoginPage() {
     setSelectedRole(acc.role);
   };
 
+  const handleContinueDemo = () => {
+    setLoading(true);
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 250);
+  };
+
   return (
     <div className="grid min-h-dvh lg:grid-cols-2 bg-[#060c13]">
       {/* LEFT COLUMN (Desktop): Crystal Clear Cinematic Stadium Drone Video */}
       <div className="relative hidden lg:flex flex-col justify-between overflow-hidden p-8 text-white select-none">
-        {/* Stadium Video Player - Clear, Vivid, No Heavy Blur */}
+        {/* Stadium Video Player */}
         <div className="absolute inset-0 z-0">
           <video
             ref={desktopVideoRef}
@@ -97,7 +105,6 @@ export default function LoginPage() {
             poster="/pitchbook-stadium-poster.jpg"
             className="w-full h-full object-cover"
           />
-          {/* Subtle edge-only vignette so video stays bright, punchy, and fully visible */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/20 pointer-events-none" />
         </div>
@@ -117,10 +124,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Center Area: Left Open so the aerial drone sweep & floodlights are completely unblocked! */}
-        <div className="relative z-10 my-auto pointer-events-none">
-          {/* Subtle bottom-anchored heading that doesn't block center screen */}
-        </div>
+        {/* Center Area */}
+        <div className="relative z-10 my-auto pointer-events-none" />
 
         {/* Bottom Floating Telemetry Strip */}
         <div className="relative z-10 space-y-3">
@@ -190,12 +195,32 @@ export default function LoginPage() {
 
         {/* Form Container */}
         <div className="flex items-center justify-center p-6 sm:p-10 lg:p-12">
-          <div className="w-full max-w-sm space-y-6">
+          <div className="w-full max-w-sm space-y-5">
             <div className="space-y-1.5 text-center lg:text-left">
               <h1 className="text-2xl font-bold tracking-tight text-white">Sign In to Club Workspace</h1>
               <p className="text-xs text-slate-400">
-                Choose a demo role below for 1-click access to the full system
+                Explore the complete enterprise platform instantly in demo mode
               </p>
+            </div>
+
+            {/* ONE-CLICK INSTANT DEMO BUTTON */}
+            <button
+              type="button"
+              onClick={handleContinueDemo}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-[#0fa05c] to-emerald-600 hover:brightness-110 text-white font-extrabold py-3.5 px-4 text-sm shadow-xl shadow-[#0fa05c]/30 border border-emerald-400/40 transition-all cursor-pointer group disabled:opacity-50"
+            >
+              <Zap className="size-4.5 text-emerald-200 fill-emerald-200 group-hover:scale-110 transition-transform" />
+              <span>Continue in Demo Mode</span>
+              <ArrowRight className="size-4 group-hover:translate-x-1 transition-transform" />
+            </button>
+
+            {/* Divider */}
+            <div className="relative flex items-center justify-center py-1">
+              <div className="w-full border-t border-white/10" />
+              <span className="bg-[#060c13] px-2 text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                or sign in with role credentials
+              </span>
             </div>
 
             {/* Demo Quick-Select Grid */}
@@ -204,7 +229,7 @@ export default function LoginPage() {
                 <p className="text-xs font-semibold text-slate-300">
                   Select Demo Role
                 </p>
-                <span className="text-[10px] text-slate-400 font-mono">1-click login</span>
+                <span className="text-[10px] text-slate-400 font-mono">1-click select</span>
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {DEMO_ACCOUNTS.map((acc) => (
@@ -226,7 +251,7 @@ export default function LoginPage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-3.5">
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
                   <Mail className="size-3.5 text-slate-400" />
