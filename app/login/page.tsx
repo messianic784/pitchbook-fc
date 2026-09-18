@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -11,8 +11,8 @@ import {
   ArrowRight,
   Lock,
   Mail,
-  CheckCircle2,
   Sparkles,
+  Play,
 } from "lucide-react";
 
 interface DemoAccount {
@@ -37,12 +37,41 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState("Club Owner");
 
+  const desktopVideoRef = useRef<HTMLVideoElement>(null);
+  const mobileVideoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const startAutoplay = (video: HTMLVideoElement | null) => {
+      if (!video) return;
+      video.defaultMuted = true;
+      video.muted = true;
+      video.playsInline = true;
+      const promise = video.play();
+      if (promise !== undefined) {
+        promise.catch(() => {
+          // Autoplay was prevented; video will start on first user interaction
+          const handleFirstClick = () => {
+            video.muted = true;
+            video.play();
+            window.removeEventListener("click", handleFirstClick);
+            window.removeEventListener("touchstart", handleFirstClick);
+          };
+          window.addEventListener("click", handleFirstClick, { once: true });
+          window.addEventListener("touchstart", handleFirstClick, { once: true });
+        });
+      }
+    };
+
+    startAutoplay(desktopVideoRef.current);
+    startAutoplay(mobileVideoRef.current);
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setTimeout(() => {
       router.push("/dashboard");
-    }, 600);
+    }, 400);
   };
 
   const handleSelectDemo = (acc: DemoAccount) => {
@@ -53,23 +82,24 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-2 bg-[#060c13]">
-      {/* LEFT COLUMN (Desktop): Cinematic Stadium Drone Video Background */}
+      {/* LEFT COLUMN (Desktop): Stadium Drone Video Background */}
       <div className="relative hidden lg:flex flex-col justify-between overflow-hidden p-10 text-white">
         {/* Stadium Video Player */}
         <div className="absolute inset-0 z-0">
           <video
+            ref={desktopVideoRef}
+            src="/pitchbook-stadium.mp4"
             autoPlay
             loop
             muted
             playsInline
+            preload="auto"
             poster="/pitchbook-stadium-poster.jpg"
             className="w-full h-full object-cover"
-          >
-            <source src="/pitchbook-stadium.mp4" type="video/mp4" />
-          </video>
-          {/* Gradients to keep text super legible */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#060c13] via-[#060c13]/60 to-[#060c13]/80" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#060c13]/70 via-transparent to-[#060c13]/40" />
+          />
+          {/* Gradients for text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#060c13] via-[#060c13]/60 to-[#060c13]/80 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#060c13]/80 via-transparent to-[#060c13]/40 pointer-events-none" />
         </div>
 
         {/* Top Header & Logo */}
@@ -89,7 +119,7 @@ export default function LoginPage() {
         <div className="relative z-10 max-w-lg space-y-7 my-auto py-12">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md px-3 py-1 text-xs text-white/80">
             <Sparkles className="size-3.5 text-[#0fa05c]" />
-            <span>Smart Football Club Operations</span>
+            <span>Modern Football Club Management</span>
           </div>
 
           <h2 className="text-4xl font-bold leading-tight tracking-tight text-white">
@@ -97,7 +127,7 @@ export default function LoginPage() {
           </h2>
 
           <p className="text-base text-white/70 leading-relaxed">
-            Players, staff, scouting, medical, finance and match-day — one unified platform built for how modern clubs win.
+            Players, staff, scouting, medical, finance and match-day — one unified platform built for how modern clubs operate.
           </p>
 
           <div className="space-y-3 pt-2">
@@ -142,23 +172,27 @@ export default function LoginPage() {
       {/* RIGHT COLUMN: Mobile Video Banner + Login Form */}
       <div className="flex flex-col justify-center min-h-full">
         {/* Mobile Stadium Video Banner */}
-        <div className="relative lg:hidden h-52 w-full overflow-hidden border-b border-white/10">
+        <div className="relative lg:hidden h-56 w-full overflow-hidden border-b border-white/10 bg-black">
           <video
+            ref={mobileVideoRef}
+            src="/pitchbook-stadium.mp4"
             autoPlay
             loop
             muted
             playsInline
+            preload="auto"
             poster="/pitchbook-stadium-poster.jpg"
             className="w-full h-full object-cover"
-          >
-            <source src="/pitchbook-stadium.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-t from-[#060c13] via-[#060c13]/50 to-transparent" />
-          <div className="absolute bottom-3 left-4 flex items-center gap-2">
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#060c13] via-[#060c13]/40 to-transparent pointer-events-none" />
+          <div className="absolute bottom-3 left-4 flex items-center gap-2 z-10">
             <div className="flex size-7 items-center justify-center rounded-md bg-[#0fa05c] text-white shadow">
               <ShieldCheck className="size-4" />
             </div>
-            <span className="font-bold text-white text-base">Pitchbook FC</span>
+            <span className="font-bold text-white text-base drop-shadow">Pitchbook FC</span>
+            <span className="text-[10px] text-[#0fa05c] font-semibold uppercase px-1.5 py-0.5 rounded bg-[#0fa05c]/20 border border-[#0fa05c]/40">
+              Live
+            </span>
           </div>
         </div>
 
@@ -168,12 +202,12 @@ export default function LoginPage() {
             <div className="space-y-2 text-center lg:text-left">
               <h1 className="text-2xl font-bold tracking-tight text-white">Welcome back</h1>
               <p className="text-sm text-slate-400">
-                Sign in to your club&apos;s workspace or select a demo account
+                Sign in to your club&apos;s workspace or choose a demo role
               </p>
             </div>
 
             {/* Demo Quick-Select Grid */}
-            <div className="rounded-xl border border-white/10 bg-[#0d141e]/90 p-3.5 backdrop-blur-sm">
+            <div className="rounded-xl border border-white/10 bg-[#0d141e]/90 p-3.5 backdrop-blur-sm shadow-xl">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold text-slate-300">
                   Demo Accounts
@@ -188,7 +222,7 @@ export default function LoginPage() {
                     onClick={() => handleSelectDemo(acc)}
                     className={`rounded-lg border px-2.5 py-1.5 text-left text-xs transition-all ${
                       selectedRole === acc.role
-                        ? "border-[#0fa05c] bg-[#0fa05c]/15 text-white font-semibold"
+                        ? "border-[#0fa05c] bg-[#0fa05c]/20 text-white font-semibold shadow-sm"
                         : "border-white/5 bg-[#141d2b] text-slate-300 hover:border-white/20 hover:bg-[#192435]"
                     }`}
                   >
@@ -234,7 +268,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#0fa05c] hover:bg-[#0fa05c]/90 text-white font-semibold py-2.5 px-4 text-sm shadow-lg shadow-[#0fa05c]/20 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#0fa05c] hover:bg-[#0fa05c]/90 text-white font-semibold py-2.5 px-4 text-sm shadow-lg shadow-[#0fa05c]/25 transition-all disabled:opacity-50"
               >
                 {loading ? (
                   <span>Signing in...</span>
@@ -250,7 +284,7 @@ export default function LoginPage() {
             <p className="text-center text-xs text-slate-400">
               New club?{" "}
               <Link href="/welcome" className="font-semibold text-[#0fa05c] hover:underline">
-                Explore Features
+                Explore Platform Overview
               </Link>
             </p>
           </div>
