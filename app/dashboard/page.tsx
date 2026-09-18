@@ -46,9 +46,13 @@ import {
   SlidersHorizontal,
   Briefcase,
   Layers,
+  Download,
+  Tv,
+  Table as TableIcon,
 } from "lucide-react";
 
 type Formation = "4-3-3" | "4-2-3-1" | "3-5-2" | "4-4-2" | "custom";
+type PitchMode = "formation" | "attack-corner" | "defend-corner";
 type ExecutiveRole = "Head Coach" | "Sporting Director" | "Chief Medical Officer" | "Club Executive / CEO";
 
 interface Player {
@@ -94,6 +98,46 @@ interface ScoutTarget {
   keyStrengths: string[];
   notes: string;
   category: "Attack" | "Midfield" | "Defense" | "Goalkeeper";
+}
+
+interface OpponentPlayer {
+  number: number;
+  name: string;
+  position: string;
+  age: number;
+  rating: number;
+  goals: number;
+  assists: number;
+  threatLevel: "CRITICAL" | "HIGH" | "NEUTRAL" | "EXPLOITABLE";
+  notes: string;
+}
+
+interface LeagueRow {
+  pos: number;
+  club: string;
+  p: number;
+  w: number;
+  d: number;
+  l: number;
+  gf: number;
+  ga: number;
+  gd: number;
+  pts: number;
+  form: ("W" | "D" | "L")[];
+  zone: "promo" | "playoff" | "mid";
+}
+
+interface FixtureItem {
+  id: string;
+  round: string;
+  date: string;
+  opponent: string;
+  venue: "Home" | "Away";
+  competition: "EFL Championship" | "FA Cup";
+  broadcast?: string;
+  status: "FT" | "UPCOMING";
+  score?: string;
+  resultBadge?: "W" | "D" | "L";
 }
 
 const ALL_PLAYERS: Player[] = [
@@ -196,17 +240,59 @@ const SCOUT_TARGETS: ScoutTarget[] = [
   },
 ];
 
+const LAKESIDE_SQUAD: OpponentPlayer[] = [
+  { number: 10, name: "Marcus Sterling", position: "CAM", age: 27, rating: 8.3, goals: 11, assists: 8, threatLevel: "CRITICAL", notes: "Primary playmaker. Creates 3.4 chances per 90. Needs man-marking in central zone." },
+  { number: 9, name: "Hugo Larsson", position: "ST", age: 25, rating: 7.8, goals: 8, assists: 2, threatLevel: "HIGH", notes: "Target man with aerial prowess. Look for back-post crosses." },
+  { number: 7, name: "Mateo Rossi", position: "RW", age: 24, rating: 7.7, goals: 5, assists: 6, threatLevel: "HIGH", notes: "Direct pace down right flank. Crosses often early into 6-yard box." },
+  { number: 11, name: "Andre Gomes", position: "LW", age: 26, rating: 7.5, goals: 4, assists: 3, threatLevel: "NEUTRAL", notes: "Cuts inside onto right foot. Nathan Walker can match for acceleration." },
+  { number: 6, name: "Callum Wright", position: "CDM", age: 28, rating: 7.4, goals: 1, assists: 1, threatLevel: "NEUTRAL", notes: "Defensive pivot. Tires around 70' minute mark." },
+  { number: 8, name: "Oliver Evans", position: "CM", age: 23, rating: 7.3, goals: 2, assists: 4, threatLevel: "NEUTRAL", notes: "Box-to-box midfielder with high foul count in defensive third." },
+  { number: 2, name: "Jordan Smith", position: "RB", age: 27, rating: 7.3, goals: 0, assists: 2, threatLevel: "NEUTRAL", notes: "Defensive right-back. Rarely ventures past halfway line." },
+  { number: 4, name: "Tyler Bennett", position: "CB", age: 29, rating: 7.4, goals: 1, assists: 0, threatLevel: "NEUTRAL", notes: "Dominant physically but struggles with recovery speed against through balls." },
+  { number: 5, name: "Liam Vance", position: "CB", age: 24, rating: 7.2, goals: 0, assists: 0, threatLevel: "EXPLOITABLE", notes: "Vulnerable in aerial duels (42% loss rate). Target for Mateo Vargas." },
+  { number: 3, name: "Daniel Murphy", position: "LB", age: 25, rating: 6.9, goals: 0, assists: 3, threatLevel: "EXPLOITABLE", notes: "Over-commits forward. 64% of conceded goals occur down this channel." },
+  { number: 1, name: "Patrick O'Neil", position: "GK", age: 31, rating: 7.1, goals: 0, assists: 0, threatLevel: "EXPLOITABLE", notes: "Hesitates on out-swinging corners into the 6-yard box." },
+  { number: 18, name: "Jack Dawson", position: "ST (Sub)", age: 21, rating: 7.0, goals: 2, assists: 0, threatLevel: "NEUTRAL", notes: "Late game target option." },
+  { number: 14, name: "Tomás Rivas", position: "CM (Sub)", age: 22, rating: 6.9, goals: 1, assists: 1, threatLevel: "NEUTRAL", notes: "Technical rotational player." },
+  { number: 17, name: "Conor Gallagher", position: "CB (Sub)", age: 24, rating: 6.8, goals: 0, assists: 0, threatLevel: "NEUTRAL", notes: "Reserve center-back." },
+];
+
+const LEAGUE_TABLE: LeagueRow[] = [
+  { pos: 1, club: "Leicester City", p: 22, w: 15, d: 3, l: 4, gf: 44, ga: 19, gd: 25, pts: 48, form: ["W", "W", "W", "D", "W"], zone: "promo" },
+  { pos: 2, club: "Riverside FC", p: 22, w: 13, d: 6, l: 3, gf: 38, ga: 17, gd: 21, pts: 45, form: ["W", "W", "D", "W", "W"], zone: "promo" },
+  { pos: 3, club: "Lakeside United", p: 22, w: 13, d: 4, l: 5, gf: 35, ga: 22, gd: 13, pts: 43, form: ["L", "W", "W", "D", "W"], zone: "playoff" },
+  { pos: 4, club: "Southampton", p: 22, w: 12, d: 5, l: 5, gf: 39, ga: 24, gd: 15, pts: 41, form: ["W", "D", "W", "W", "L"], zone: "playoff" },
+  { pos: 5, club: "Leeds United", p: 22, w: 11, d: 7, l: 4, gf: 36, ga: 21, gd: 15, pts: 40, form: ["D", "W", "D", "W", "W"], zone: "playoff" },
+  { pos: 6, club: "West Brom", p: 22, w: 11, d: 5, l: 6, gf: 32, ga: 23, gd: 9, pts: 38, form: ["W", "L", "W", "D", "D"], zone: "playoff" },
+  { pos: 7, club: "Sunderland", p: 22, w: 10, d: 6, l: 6, gf: 29, ga: 22, gd: 7, pts: 36, form: ["W", "W", "L", "D", "W"], zone: "mid" },
+  { pos: 8, club: "Norwich City", p: 22, w: 9, d: 7, l: 6, gf: 31, ga: 28, gd: 3, pts: 34, form: ["D", "L", "W", "W", "L"], zone: "mid" },
+  { pos: 9, club: "Coventry City", p: 22, w: 9, d: 6, l: 7, gf: 30, ga: 27, gd: 3, pts: 33, form: ["L", "W", "D", "L", "W"], zone: "mid" },
+  { pos: 10, club: "Middlesbrough", p: 22, w: 8, d: 7, l: 7, gf: 28, ga: 26, gd: 2, pts: 31, form: ["W", "D", "L", "W", "D"], zone: "mid" },
+];
+
+const FIXTURES_CALENDAR: FixtureItem[] = [
+  { id: "f-1", round: "Matchday 20", date: "Jan 10 · 15:00", opponent: "Derby County", venue: "Home", competition: "EFL Championship", status: "FT", score: "2 - 0", resultBadge: "W" },
+  { id: "f-2", round: "Matchday 21", date: "Jan 14 · 19:45", opponent: "Watford", venue: "Away", competition: "EFL Championship", status: "FT", score: "1 - 1", resultBadge: "D" },
+  { id: "f-3", round: "Matchday 22", date: "This Sat · 15:00", opponent: "Lakeside United", venue: "Home", competition: "EFL Championship", broadcast: "Sky Sports Main Event", status: "UPCOMING" },
+  { id: "f-4", round: "Matchday 23", date: "Next Tue · 19:45", opponent: "Sunderland", venue: "Away", competition: "EFL Championship", broadcast: "EFL International Live", status: "UPCOMING" },
+  { id: "f-5", round: "FA Cup R4", date: "Sat Jan 31 · 17:30", opponent: "Aston Villa", venue: "Away", competition: "FA Cup", broadcast: "BBC One & iPlayer", status: "UPCOMING" },
+  { id: "f-6", round: "Matchday 24", date: "Sat Feb 7 · 15:00", opponent: "Norwich City", venue: "Home", competition: "EFL Championship", status: "UPCOMING" },
+];
+
 export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("squad");
   const [executiveRole, setExecutiveRole] = useState<ExecutiveRole>("Head Coach");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [formation, setFormation] = useState<Formation>("4-3-3");
+  const [pitchMode, setPitchMode] = useState<PitchMode>("formation");
   const [matchMinute, setMatchMinute] = useState(0);
   const [showTacticalHeatmap, setShowTacticalHeatmap] = useState(false);
   const [showDossierModal, setShowDossierModal] = useState(false);
   const [selectedPlayerModal, setSelectedPlayerModal] = useState<Player | null>(null);
   const [selectedScoutTarget, setSelectedScoutTarget] = useState<ScoutTarget | null>(null);
   const [scoutCategoryFilter, setScoutCategoryFilter] = useState<string>("All");
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [activeVideoTitle, setActiveVideoTitle] = useState("Lakeside Left Flank Transition Exploit (38')");
 
   // CUSTOM FORMATION STATE
   const [customDef, setCustomDef] = useState<number>(3);
@@ -260,6 +346,57 @@ export default function DashboardPage() {
     setCustomMid(mid);
     setCustomFwd(fwd);
     setCustomTacticPreset(label);
+  };
+
+  // CSV DATA EXPORTERS
+  const downloadPsrCsv = () => {
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      "Metric,Value,Threshold,Status\n" +
+      `Squad Book Value,${totalMarketValue},N/A,Healthy Asset Portfolio\n` +
+      `Annual Wage Roll,£5.42M,£7.5M Max,Compliant\n` +
+      `Turnover Benchmark,£22.5M,N/A,EFL Championship\n` +
+      `Simulated Transfer Outlay,£${simulatedTransferSpend}.0M,£15M Cap,Tested\n` +
+      `Simulated Player Sales,£${simulatedPlayerSales}.0M,N/A,Cash Inflow\n` +
+      `3-Year Rolling PSR Margin,£${currentPsrMargin}M,£0.0M Floor,${currentPsrMargin >= 0 ? "COMPLIANT SAFE" : "REGULATORY BREACH"}\n` +
+      `UEFA Squad Cost Ratio,${squadCostRatio}%,70% Max Cap,${squadCostRatio <= 70 ? "SAFE" : "BREACH"}\n` +
+      `Expiring Contracts 2026,2 Players,N/A,Action Required\n` +
+      `Audit Date,${new Date().toLocaleDateString("en-GB")},EFL Rule 16.4,Certified Clean\n`;
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `riverside_fc_psr_audit_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadScoutCsv = () => {
+    const rows = [
+      ["Name", "Age", "Position", "Current Club", "Country", "Est Fee", "Est Wage", "Scout Grade", "Score /10", "Status", "Key Strengths"],
+      ...SCOUT_TARGETS.map((t) => [
+        t.name,
+        t.age,
+        t.position,
+        `"${t.currentClub}"`,
+        `"${t.country}"`,
+        t.marketValue,
+        t.estWage,
+        t.scoutGrade,
+        t.scoutScore,
+        t.status,
+        `"${t.keyStrengths.join("; ")}"`,
+      ]),
+    ];
+    const csvContent = "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `riverside_fc_global_scouting_pipeline_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const renderPlayerCard = (player: Player, fatigueRate: number, customWidth = "w-32 sm:w-36") => {
@@ -339,6 +476,93 @@ export default function DashboardPage() {
   };
 
   const renderPitchRows = () => {
+    // SET PIECE 1: ATTACKING CORNER ROUTINE A (NEAR POST FLICK)
+    if (pitchMode === "attack-corner") {
+      return (
+        <div className="relative z-10 space-y-6 my-2 min-h-[520px] flex flex-col justify-between">
+          <div className="flex justify-between items-center px-4 bg-emerald-950/60 border border-emerald-500/30 p-2.5 rounded-xl">
+            <span className="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+              <Sparkles className="size-4 text-emerald-400" />
+              Corner Taker: Lucas Silva (#10) at Right Corner Flag · Target: David Brennan (#4) Near Post
+            </span>
+            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+              6-Yard Box Overload
+            </span>
+          </div>
+
+          {/* Goalmouth Danger Cluster */}
+          <div className="flex justify-around items-center px-4 pt-2">
+            {[starters[2], starters[9], starters[8], starters[3]].map((player) =>
+              renderPlayerCard(player, 0.45, "w-28 sm:w-32 border-emerald-400/60 ring-2 ring-emerald-400/30")
+            )}
+          </div>
+
+          {/* Edge of Box Rebound Sweepers */}
+          <div className="flex justify-center gap-8 items-center px-8">
+            {[starters[5], starters[6], starters[10]].map((player) =>
+              renderPlayerCard(player, 0.44, "w-32 sm:w-36")
+            )}
+          </div>
+
+          {/* Rest Defense Lock (Halfway Line Cover) */}
+          <div className="flex justify-around items-center px-10">
+            {[starters[1], starters[4]].map((player) =>
+              renderPlayerCard(player, 0.40, "w-32 sm:w-36 border-cyan-400/40")
+            )}
+          </div>
+
+          {/* GK Sweeper Keeper */}
+          <div className="flex justify-center items-center">
+            {renderGoalkeeperCard(starters[0])}
+          </div>
+        </div>
+      );
+    }
+
+    // SET PIECE 2: DEFENSIVE ZONAL CORNER (6-YARD PERIMETER)
+    if (pitchMode === "defend-corner") {
+      return (
+        <div className="relative z-10 space-y-6 my-2 min-h-[520px] flex flex-col justify-between">
+          <div className="flex justify-between items-center px-4 bg-rose-950/60 border border-rose-500/30 p-2.5 rounded-xl">
+            <span className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+              <Shield className="size-4 text-rose-400" />
+              Defensive Corner Setup: 4 Zonal Defenders in 6-Yard Box, 3 Man-Markers, 1 Edge Sweeper, 2 Counter Outlets
+            </span>
+            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-rose-500/20 text-rose-300">
+              Zonal Wall Active
+            </span>
+          </div>
+
+          {/* Counter Outlets (High at Halfway) */}
+          <div className="flex justify-around items-center px-12">
+            {[starters[8], starters[9]].map((player) =>
+              renderPlayerCard(player, 0.45, "w-32 sm:w-36 border-amber-400/60")
+            )}
+          </div>
+
+          {/* Edge of Area Sweeper & Man Marker */}
+          <div className="flex justify-center gap-12 items-center px-8">
+            {[starters[5], starters[6], starters[10]].map((player) =>
+              renderPlayerCard(player, 0.44, "w-28 sm:w-32")
+            )}
+          </div>
+
+          {/* Zonal 6-Yard Box Line */}
+          <div className="flex justify-around items-center px-2">
+            {[starters[1], starters[2], starters[3], starters[4], starters[7]].map((player) =>
+              renderPlayerCard(player, 0.40, "w-24 sm:w-28 border-rose-400/50 ring-2 ring-rose-400/20 text-[9px]")
+            )}
+          </div>
+
+          {/* GK Command Box */}
+          <div className="flex justify-center items-center">
+            {renderGoalkeeperCard(starters[0])}
+          </div>
+        </div>
+      );
+    }
+
+    // STANDARD FORMATION RENDERING
     if (formation === "4-3-3") {
       return (
         <div className="relative z-10 space-y-7 my-2 min-h-[520px] flex flex-col justify-between">
@@ -429,19 +653,15 @@ export default function DashboardPage() {
 
     return (
       <div className="relative z-10 space-y-6 my-2 min-h-[520px] flex flex-col justify-between">
-        {/* Custom Forward Line */}
         <div className="flex justify-around items-center px-4">
           {fwdPlayers.map((player) => renderPlayerCard(player, 0.46, fwdCount > 2 ? "w-28 sm:w-32 text-[10px]" : "w-32 sm:w-36"))}
         </div>
-        {/* Custom Midfield Line */}
         <div className="flex justify-around items-center px-2">
           {midPlayers.map((player) => renderPlayerCard(player, 0.48, midCount > 4 ? "w-24 sm:w-28 text-[9px]" : "w-28 sm:w-32"))}
         </div>
-        {/* Custom Defense Line */}
         <div className="flex justify-around items-center px-2">
           {defPlayers.map((player) => renderPlayerCard(player, 0.40, defCount > 4 ? "w-24 sm:w-28 text-[9px]" : "w-28 sm:w-32"))}
         </div>
-        {/* Goalkeeper */}
         <div className="flex justify-center items-center">
           {renderGoalkeeperCard(starters[0])}
         </div>
@@ -559,11 +779,11 @@ export default function DashboardPage() {
               { id: "shadow", label: "Shadow Squad (Depth)", icon: Target, badge: "Shortlist", badgeColor: "text-cyan-400 bg-cyan-400/10 border-cyan-400/30" },
               { id: "medical", label: "Medical & GPS ACWR", icon: HeartPulse, badge: "2 in Rehab", badgeColor: "text-amber-400 bg-amber-400/15 border-amber-400/30" },
               { id: "scouting", label: "Recruitment Pipeline", icon: Binoculars, badge: "34 Targets" },
-              { id: "matches", label: "Opposition Scouting", icon: Trophy },
+              { id: "matches", label: "Opposition & Opponent Squad", icon: Trophy, badge: "vs Lakeside" },
               { id: "finance", label: "Financials & PSR Cap", icon: Wallet, badge: `£${currentPsrMargin}M Margin` },
               { id: "training", label: "Training GPS Load", icon: TrendingUp },
               { id: "academy", label: "Youth Development", icon: GraduationCap, badge: "64 Scholars" },
-              { id: "calendar", label: "Operations Schedule", icon: CalendarDays },
+              { id: "calendar", label: "Fixtures & League Table", icon: CalendarDays, badge: "#2 in Table", badgeColor: "text-emerald-400 bg-emerald-400/15 border-emerald-400/30" },
             ].map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -612,35 +832,68 @@ export default function DashboardPage() {
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto min-w-0 space-y-6">
 
+          {/* ========================================================================= */}
+          {/* TAB 1: SQUAD & 3D INTERACTIVE TACTICAL PITCHBOARD */}
+          {/* ========================================================================= */}
           {activeTab === "squad" && (
             <div className="space-y-6">
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#0d141e] border border-white/10 rounded-2xl p-4 shadow-xl">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="size-2 rounded-full bg-[#0fa05c] animate-pulse" />
-                    <h1 className="text-xl font-bold text-white">Tactical Pitchboard & Match Lineup</h1>
+                    <h1 className="text-xl font-bold text-white">Tactical Pitchboard & Set-Piece Playbook</h1>
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Select standard formations or build a bespoke Custom Tactical System with custom outfield distribution
+                    Switch between open play formations, attacking corner routines, or defensive zonal blocks
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="flex items-center gap-1.5 bg-[#141d2b] border border-white/10 px-3 py-1.5 rounded-lg text-xs">
-                    <Sliders className="size-3.5 text-[#0fa05c]" />
-                    <span className="text-slate-400">Formation:</span>
-                    <select
-                      value={formation}
-                      onChange={(e) => setFormation(e.target.value as Formation)}
-                      className="bg-transparent font-bold text-white outline-none cursor-pointer"
+                <div className="flex flex-wrap items-center gap-2.5">
+                  {/* PITCH MODE TOGGLE (Set-Piece Playbook) */}
+                  <div className="flex bg-[#141d2b] border border-white/10 rounded-lg p-1 text-xs">
+                    <button
+                      onClick={() => setPitchMode("formation")}
+                      className={`px-2.5 py-1 rounded-md transition cursor-pointer font-semibold ${
+                        pitchMode === "formation" ? "bg-[#0fa05c] text-white shadow" : "text-slate-400 hover:text-white"
+                      }`}
                     >
-                      <option value="4-3-3" className="bg-[#141d2b]">4-3-3 Attacking Overload</option>
-                      <option value="4-2-3-1" className="bg-[#141d2b]">4-2-3-1 Modern High Press</option>
-                      <option value="3-5-2" className="bg-[#141d2b]">3-5-2 Wingback Overload</option>
-                      <option value="4-4-2" className="bg-[#141d2b]">4-4-2 Compact Low Block</option>
-                      <option value="custom" className="bg-[#141d2b]">⚡ Custom Tactical Shape</option>
-                    </select>
+                      Open Play
+                    </button>
+                    <button
+                      onClick={() => setPitchMode("attack-corner")}
+                      className={`px-2.5 py-1 rounded-md transition cursor-pointer font-semibold ${
+                        pitchMode === "attack-corner" ? "bg-emerald-600 text-white shadow" : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      Attacking Corner
+                    </button>
+                    <button
+                      onClick={() => setPitchMode("defend-corner")}
+                      className={`px-2.5 py-1 rounded-md transition cursor-pointer font-semibold ${
+                        pitchMode === "defend-corner" ? "bg-rose-600 text-white shadow" : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      Defensive Zonal
+                    </button>
                   </div>
+
+                  {pitchMode === "formation" && (
+                    <div className="flex items-center gap-1.5 bg-[#141d2b] border border-white/10 px-3 py-1.5 rounded-lg text-xs">
+                      <Sliders className="size-3.5 text-[#0fa05c]" />
+                      <span className="text-slate-400">Formation:</span>
+                      <select
+                        value={formation}
+                        onChange={(e) => setFormation(e.target.value as Formation)}
+                        className="bg-transparent font-bold text-white outline-none cursor-pointer"
+                      >
+                        <option value="4-3-3" className="bg-[#141d2b]">4-3-3 Attacking Overload</option>
+                        <option value="4-2-3-1" className="bg-[#141d2b]">4-2-3-1 Modern High Press</option>
+                        <option value="3-5-2" className="bg-[#141d2b]">3-5-2 Wingback Overload</option>
+                        <option value="4-4-2" className="bg-[#141d2b]">4-4-2 Compact Low Block</option>
+                        <option value="custom" className="bg-[#141d2b]">⚡ Custom Tactical Shape</option>
+                      </select>
+                    </div>
+                  )}
 
                   <button
                     onClick={() => setShowTacticalHeatmap(!showTacticalHeatmap)}
@@ -650,7 +903,7 @@ export default function DashboardPage() {
                         : "bg-[#141d2b] border-white/10 text-slate-300 hover:bg-white/5"
                     }`}
                   >
-                    {showTacticalHeatmap ? "🔥 Press Heatmap: ON" : "Tactical Heatmap"}
+                    {showTacticalHeatmap ? "🔥 Heatmap: ON" : "Tactical Heatmap"}
                   </button>
 
                   <button
@@ -658,6 +911,7 @@ export default function DashboardPage() {
                       setStarters(ALL_PLAYERS.slice(0, 11));
                       setBench(ALL_PLAYERS.slice(11));
                       setMatchMinute(0);
+                      setPitchMode("formation");
                     }}
                     className="p-1.5 rounded-lg border border-white/10 hover:bg-white/5 text-slate-400 hover:text-white cursor-pointer"
                     title="Reset Starting XI"
@@ -667,8 +921,8 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* DEDICATED CUSTOM FORMATION BUILDER PANEL (WHEN CUSTOM IS SELECTED) */}
-              {formation === "custom" && (
+              {/* DEDICATED CUSTOM FORMATION BUILDER PANEL */}
+              {formation === "custom" && pitchMode === "formation" && (
                 <div className="rounded-xl border border-emerald-500/30 bg-[#0c1a14] p-4 space-y-3 shadow-lg">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-500/20 pb-2.5">
                     <div className="flex items-center gap-2">
@@ -682,7 +936,6 @@ export default function DashboardPage() {
                     </span>
                   </div>
 
-                  {/* Preset Quick Selectors */}
                   <div className="flex flex-wrap items-center gap-2 text-xs">
                     <span className="text-slate-400 text-[11px]">System Presets:</span>
                     {[
@@ -707,7 +960,6 @@ export default function DashboardPage() {
                     ))}
                   </div>
 
-                  {/* Interactive Outfield Line Steppers */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
                     <div className="bg-black/40 border border-white/5 p-2.5 rounded-lg flex items-center justify-between">
                       <span className="text-xs text-slate-300">Defenders (Backline):</span>
@@ -735,7 +987,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="bg-black/40 border border-white/5 p-2.5 rounded-lg flex items-center justify-between">
-                      <span className="text-xs text-slate-300">Midfielders (Central & Wings):</span>
+                      <span className="text-xs text-slate-300">Midfielders (Central/Wings):</span>
                       <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-500/10 px-2.5 py-1 rounded border border-cyan-500/20">
                         {10 - customDef - customFwd} Players
                       </span>
@@ -820,7 +1072,7 @@ export default function DashboardPage() {
                         RIVERSIDE STADIUM (HOME)
                       </span>
                       <span className="text-[11px] text-white/60">
-                        · {formation === "custom" ? `Custom ${customDef}-${10 - customDef - customFwd}-${customFwd}` : formation}
+                        · {pitchMode === "attack-corner" ? "Corner Set-Piece" : pitchMode === "defend-corner" ? "Defensive Wall" : formation}
                       </span>
                     </div>
                     {selectedPlayerToSwap && (
@@ -883,8 +1135,10 @@ export default function DashboardPage() {
                       <span>Tactical Intelligence Engine</span>
                     </div>
                     <p className="text-xs text-slate-300 leading-relaxed">
-                      {formation === "custom"
-                        ? `Custom system ${customDef}-${10 - customDef - customFwd}-${customFwd} balances transitional coverage with a +${customFwd * 9}% final-third overload.`
+                      {pitchMode === "attack-corner"
+                        ? "Lakeside GK vacates near-post line. Brennan flick-on produces 0.38 xG conversion rate."
+                        : pitchMode === "defend-corner"
+                        ? "Zonal line of 4 protects penalty spot against Sterling inswingers. Mensah held ready for counter-break."
                         : "Lakeside United tire after minute 70' in their double-pivot. Introducing Samuel Eto'o Jr provides an immediate +28% aerial threat against their exhausted center-half."}
                     </p>
                   </div>
@@ -893,6 +1147,9 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* ========================================================================= */}
+          {/* TAB 2: SHADOW SQUAD SUCCESSION MATRIX */}
+          {/* ========================================================================= */}
           {activeTab === "shadow" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
@@ -942,6 +1199,9 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* ========================================================================= */}
+          {/* TAB 3: MEDICAL & GPS ACWR SOFT-TISSUE RISK */}
+          {/* ========================================================================= */}
           {activeTab === "medical" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
@@ -1016,6 +1276,9 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* ========================================================================= */}
+          {/* TAB 4: RECRUITMENT KANBAN PIPELINE */}
+          {/* ========================================================================= */}
           {activeTab === "scouting" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
@@ -1024,6 +1287,13 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-400 mt-0.5">34 active prospects tracked across Europe, South America, and West Africa</p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={downloadScoutCsv}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#141d2b] hover:bg-[#0fa05c] text-white text-xs font-semibold border border-white/10 transition cursor-pointer"
+                  >
+                    <Download className="size-3.5" />
+                    <span>Export Shortlist (.csv)</span>
+                  </button>
                   <div className="flex bg-[#121b27] border border-white/10 rounded-lg p-1 text-xs">
                     {["All", "Attack", "Midfield", "Defense", "Goalkeeper"].map((cat) => (
                       <button
@@ -1080,6 +1350,9 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* ========================================================================= */}
+          {/* TAB 5: OPPOSITION SCOUTING, VIDEO ROOM & OPPONENT SQUAD */}
+          {/* ========================================================================= */}
           {activeTab === "matches" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
@@ -1087,11 +1360,21 @@ export default function DashboardPage() {
                   <h1 className="text-xl font-bold text-white">Opposition Dossier: Lakeside United</h1>
                   <p className="text-xs text-slate-400 mt-0.5">Manager: Thomas Lindqvist · Tactical System: 4-2-3-1 High Press</p>
                 </div>
-                <span className="text-xs bg-amber-400/20 text-amber-300 border border-amber-400/30 px-3 py-1.5 rounded-lg font-bold">
-                  Opposition League Rank: #3 (43 pts)
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowVideoModal(true)}
+                    className="flex items-center gap-1.5 text-xs bg-rose-600 hover:bg-rose-500 text-white font-bold px-3 py-1.5 rounded-lg shadow transition cursor-pointer"
+                  >
+                    <Video className="size-3.5" />
+                    <span>Launch Video Analysis Room</span>
+                  </button>
+                  <span className="text-xs bg-amber-400/20 text-amber-300 border border-amber-400/30 px-3 py-1.5 rounded-lg font-bold">
+                    Rank #3 (43 pts)
+                  </span>
+                </div>
               </div>
 
+              {/* Tactical Weaknesses & Danger Threats */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="rounded-xl border border-white/10 bg-[#0d141e] p-5 space-y-3">
                   <h3 className="text-xs font-bold uppercase text-emerald-400 tracking-wider flex items-center gap-1.5">
@@ -1124,29 +1407,70 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-[#0d141e] p-5 space-y-3">
-                <h3 className="text-xs font-bold uppercase text-white tracking-wider flex items-center gap-2">
-                  <Play className="size-4 text-[#0fa05c]" />
-                  Matchday Set-Piece Execution Plan
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                  <div className="p-3 rounded-lg bg-black/40 border border-white/5 space-y-1">
-                    <p className="font-bold text-emerald-400">Attacking Corner Routine 1</p>
-                    <p className="text-slate-300 text-[11px]">Near-post dart by David Brennan with Mateo Vargas pulling goalkeeper away to back post.</p>
+              {/* LAKESIDE UNITED COMPLETE OPPONENT SQUAD ROSTER */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d141e] p-5 space-y-4 shadow-xl">
+                <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Users className="size-4 text-[#0fa05c]" />
+                      Lakeside United Confirmed Matchday Squad Roster
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Scout ratings, threat classifications, and individual tactical vulnerabilities</p>
                   </div>
-                  <div className="p-3 rounded-lg bg-black/40 border border-white/5 space-y-1">
-                    <p className="font-bold text-cyan-300">Attacking Free-Kick Routine 2</p>
-                    <p className="text-slate-300 text-[11px]">Direct inswinger by Lucas Silva aiming at the 6-yard perimeter with Gabriel Souza charging blindside.</p>
-                  </div>
-                  <div className="p-3 rounded-lg bg-black/40 border border-white/5 space-y-1">
-                    <p className="font-bold text-amber-300">Defensive Zonal Structure</p>
-                    <p className="text-slate-300 text-[11px]">4 zonal defenders across 6-yard box, 3 man-markers on primary aerial targets, 1 edge-of-box sweeper.</p>
-                  </div>
+                  <span className="text-xs font-mono text-slate-400 bg-white/5 px-2.5 py-1 rounded">
+                    14 Players Analyzed
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="bg-[#090f18] text-slate-400 uppercase text-[10px] font-mono">
+                      <tr>
+                        <th className="py-2.5 px-3">#</th>
+                        <th className="py-2.5 px-3">Player</th>
+                        <th className="py-2.5 px-3">Pos</th>
+                        <th className="py-2.5 px-3">Rating</th>
+                        <th className="py-2.5 px-3">Goals/Ast</th>
+                        <th className="py-2.5 px-3">Threat Tier</th>
+                        <th className="py-2.5 px-3">Scout Notes & Duel Strategy</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {LAKESIDE_SQUAD.map((opp) => (
+                        <tr key={opp.number} className="hover:bg-white/5 transition">
+                          <td className="py-2.5 px-3 font-mono font-bold text-white">{opp.number}</td>
+                          <td className="py-2.5 px-3 font-bold text-white">{opp.name}</td>
+                          <td className="py-2.5 px-3 text-[#0fa05c] font-semibold">{opp.position}</td>
+                          <td className="py-2.5 px-3 font-mono font-bold text-emerald-400">{opp.rating}</td>
+                          <td className="py-2.5 px-3 font-mono">{opp.goals}G / {opp.assists}A</td>
+                          <td className="py-2.5 px-3">
+                            <span
+                              className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                                opp.threatLevel === "CRITICAL"
+                                  ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                  : opp.threatLevel === "HIGH"
+                                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                  : opp.threatLevel === "EXPLOITABLE"
+                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold"
+                                  : "bg-white/10 text-slate-400"
+                              }`}
+                            >
+                              {opp.threatLevel}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-[11px] text-slate-300">{opp.notes}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
           )}
 
+          {/* ========================================================================= */}
+          {/* TAB 6: FINANCIALS & PSR SIMULATOR */}
+          {/* ========================================================================= */}
           {activeTab === "finance" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
@@ -1154,15 +1478,24 @@ export default function DashboardPage() {
                   <h1 className="text-xl font-bold text-white">Club Financial Health & Interactive PSR Simulator</h1>
                   <p className="text-xs text-slate-400 mt-0.5">Real-time rolling 3-year Profitability & Sustainability Rules (PSR) stress testing</p>
                 </div>
-                <span
-                  className={`text-xs font-mono px-3 py-1.5 rounded-lg font-bold border ${
-                    squadCostRatio <= 70
-                      ? "bg-[#0fa05c]/20 text-[#0fa05c] border-[#0fa05c]/30"
-                      : "bg-rose-500/20 text-rose-400 border-rose-500/30"
-                  }`}
-                >
-                  UEFA Squad Cost Ratio: {squadCostRatio}% (Cap: 70%)
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={downloadPsrCsv}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0fa05c] hover:bg-[#0fa05c]/90 text-white text-xs font-semibold shadow transition cursor-pointer"
+                  >
+                    <Download className="size-3.5" />
+                    <span>Download PSR Audit (.csv)</span>
+                  </button>
+                  <span
+                    className={`text-xs font-mono px-3 py-1.5 rounded-lg font-bold border ${
+                      squadCostRatio <= 70
+                        ? "bg-[#0fa05c]/20 text-[#0fa05c] border-[#0fa05c]/30"
+                        : "bg-rose-500/20 text-rose-400 border-rose-500/30"
+                    }`}
+                  >
+                    UEFA Squad Cost: {squadCostRatio}% (Cap: 70%)
+                  </span>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1202,7 +1535,7 @@ export default function DashboardPage() {
                       Interactive Transfer Window PSR Stress-Test Simulator
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Adjust prospective winter/summer transfer fees to verify compliance and prevent points deduction penalties
+                      Adjust prospective transfer outlay or player sales to verify EFL PSR and prevent points deductions
                     </p>
                   </div>
                   <button
@@ -1293,6 +1626,9 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* ========================================================================= */}
+          {/* TAB 7: TRAINING GPS LOAD */}
+          {/* ========================================================================= */}
           {activeTab === "training" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
@@ -1325,6 +1661,9 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* ========================================================================= */}
+          {/* TAB 8: YOUTH ACADEMY */}
+          {/* ========================================================================= */}
           {activeTab === "academy" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
@@ -1357,36 +1696,186 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* ========================================================================= */}
+          {/* TAB 9: SCHEDULE FIXTURES & LIVE EFL LEAGUE TABLE */}
+          {/* ========================================================================= */}
           {activeTab === "calendar" && (
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
                 <div>
-                  <h1 className="text-xl font-bold text-white">Club Operations Schedule</h1>
-                  <p className="text-xs text-slate-400 mt-0.5">Integrated fixtures, training cycles, travel logistics, and medical assessments</p>
+                  <h1 className="text-xl font-bold text-white">Fixtures Schedule & EFL Championship Table</h1>
+                  <p className="text-xs text-slate-400 mt-0.5">Match calendar, broadcast assignments, and promotion race standings</p>
                 </div>
+                <span className="text-xs bg-[#0fa05c]/15 text-[#0fa05c] border border-[#0fa05c]/30 px-3 py-1.5 rounded-lg font-bold">
+                  Riverside FC: 2nd Place (Automatic Promotion)
+                </span>
               </div>
 
-              <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4 space-y-3">
-                <div className="flex items-center justify-between p-3.5 rounded-lg bg-white/5 border border-white/5">
-                  <div className="flex items-center gap-3">
-                    <CalendarDays className="size-5 text-[#0fa05c]" />
-                    <div>
-                      <strong className="text-white text-xs">Tomorrow · 10:00 - 12:00</strong>
-                      <p className="text-[11px] text-slate-400">Pre-Match Tactical Preparation & Set Piece Drills</p>
-                    </div>
+              {/* FIXTURES LIST & LEAGUE TABLE GRID */}
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                {/* UPCOMING & PAST FIXTURES (6 COLS) */}
+                <div className="xl:col-span-6 space-y-3">
+                  <div className="flex items-center justify-between pb-1">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <CalendarDays className="size-4 text-[#0fa05c]" />
+                      Matchday Schedule & Results
+                    </h3>
+                    <span className="text-[10px] font-mono text-slate-400">Season 2026/27</span>
                   </div>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">First Team</span>
+
+                  <div className="space-y-2.5">
+                    {FIXTURES_CALENDAR.map((fix) => (
+                      <div
+                        key={fix.id}
+                        className={`p-3.5 rounded-xl border transition ${
+                          fix.status === "UPCOMING" && fix.round === "Matchday 22"
+                            ? "bg-[#0f2117] border-[#0fa05c]/40 shadow-lg"
+                            : "bg-[#0d141e] border-white/10 hover:border-white/20"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded">
+                              {fix.round}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-semibold">{fix.competition}</span>
+                            <span className="text-[10px] text-slate-500">· {fix.venue}</span>
+                          </div>
+                          {fix.broadcast && (
+                            <span className="text-[10px] text-amber-300 font-mono flex items-center gap-1">
+                              <Tv className="size-3 text-amber-400" /> {fix.broadcast}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between mt-2 pt-1 border-t border-white/5">
+                          <div>
+                            <p className="text-xs font-bold text-white">
+                              Riverside FC <span className="text-slate-400 font-normal">vs</span> {fix.opponent}
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">{fix.date}</p>
+                          </div>
+
+                          <div>
+                            {fix.status === "FT" ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-mono font-bold text-white">{fix.score}</span>
+                                <span
+                                  className={`size-5 rounded flex items-center justify-center font-bold text-[10px] ${
+                                    fix.resultBadge === "W"
+                                      ? "bg-[#0fa05c] text-white"
+                                      : fix.resultBadge === "D"
+                                      ? "bg-amber-400 text-black"
+                                      : "bg-rose-500 text-white"
+                                  }`}
+                                >
+                                  {fix.resultBadge}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] font-bold px-2.5 py-1 rounded bg-[#0fa05c] text-white">
+                                Upcoming
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between p-3.5 rounded-lg bg-[#0fa05c]/10 border border-[#0fa05c]/30">
-                  <div className="flex items-center gap-3">
-                    <Trophy className="size-5 text-[#0fa05c]" />
-                    <div>
-                      <strong className="text-white text-xs">Saturday · 15:00 Kickoff</strong>
-                      <p className="text-[11px] text-slate-300">Matchday 22: Riverside FC vs Lakeside United (Riverside Stadium)</p>
+                {/* LIVE EFL CHAMPIONSHIP LEAGUE TABLE (6 COLS) */}
+                <div className="xl:col-span-6 space-y-3">
+                  <div className="flex items-center justify-between pb-1">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <TableIcon className="size-4 text-[#0fa05c]" />
+                      EFL Championship Standings
+                    </h3>
+                    <div className="flex items-center gap-2 text-[10px]">
+                      <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+                        <span className="size-2 rounded-full bg-[#0fa05c]" /> Auto Promo
+                      </span>
+                      <span className="flex items-center gap-1 text-cyan-400 font-semibold">
+                        <span className="size-2 rounded-full bg-cyan-400" /> Play-Offs
+                      </span>
                     </div>
                   </div>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded bg-[#0fa05c] text-white font-bold">Matchday</span>
+
+                  <div className="rounded-xl border border-white/10 bg-[#0d141e] overflow-hidden shadow-xl">
+                    <table className="w-full text-left text-xs text-slate-300">
+                      <thead className="bg-[#090f18] text-slate-400 uppercase text-[10px] font-mono">
+                        <tr>
+                          <th className="py-2.5 px-3">Pos</th>
+                          <th className="py-2.5 px-3">Club</th>
+                          <th className="py-2.5 px-2 text-center">P</th>
+                          <th className="py-2.5 px-2 text-center">GD</th>
+                          <th className="py-2.5 px-2 text-center">Pts</th>
+                          <th className="py-2.5 px-3 text-center">Form</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {LEAGUE_TABLE.map((row) => (
+                          <tr
+                            key={row.pos}
+                            className={`transition ${
+                              row.club === "Riverside FC"
+                                ? "bg-[#0fa05c]/15 font-bold text-white"
+                                : row.club === "Lakeside United"
+                                ? "bg-amber-400/10 text-amber-200"
+                                : "hover:bg-white/5"
+                            }`}
+                          >
+                            <td className="py-2 px-3 font-mono">
+                              <span
+                                className={`inline-block size-5 text-center leading-5 rounded text-[10px] font-bold ${
+                                  row.zone === "promo"
+                                    ? "bg-[#0fa05c] text-white"
+                                    : row.zone === "playoff"
+                                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
+                                    : "text-slate-400"
+                                }`}
+                              >
+                                {row.pos}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 font-medium flex items-center gap-1.5">
+                              <span>{row.club}</span>
+                              {row.club === "Riverside FC" && (
+                                <span className="text-[9px] bg-[#0fa05c] text-white px-1.5 py-0.2 rounded font-bold">
+                                  YOU
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2 px-2 text-center font-mono">{row.p}</td>
+                            <td className="py-2 px-2 text-center font-mono font-semibold">
+                              {row.gd > 0 ? `+${row.gd}` : row.gd}
+                            </td>
+                            <td className="py-2 px-2 text-center font-mono font-extrabold text-white">
+                              {row.pts}
+                            </td>
+                            <td className="py-2 px-3">
+                              <div className="flex items-center justify-center gap-1">
+                                {row.form.map((f, i) => (
+                                  <span
+                                    key={i}
+                                    className={`size-4 rounded text-[9px] font-bold flex items-center justify-center ${
+                                      f === "W"
+                                        ? "bg-emerald-500 text-white"
+                                        : f === "D"
+                                        ? "bg-amber-400 text-black"
+                                        : "bg-rose-500 text-white"
+                                    }`}
+                                  >
+                                    {f}
+                                  </span>
+                                ))}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1395,6 +1884,96 @@ export default function DashboardPage() {
         </main>
       </div>
 
+      {/* ========================================================================= */}
+      {/* TACTICAL VIDEO MATCH ANALYSIS ROOM MODAL */}
+      {/* ========================================================================= */}
+      {showVideoModal && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0b131e] border border-white/20 rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-[#070c14]">
+              <div className="flex items-center gap-2.5">
+                <Video className="size-5 text-rose-500" />
+                <div>
+                  <h3 className="font-bold text-white text-sm">Match Video Telemetry & Telestrator Room</h3>
+                  <p className="text-[11px] text-slate-400">Matchday 22 Prep: Lakeside United Tactical Footage</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowVideoModal(false)}
+                className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <X className="size-5" />
+              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-5 text-xs text-slate-300">
+              {/* Simulated Broadcast Video Player */}
+              <div className="relative aspect-video rounded-xl overflow-hidden border-2 border-white/10 bg-black shadow-2xl flex items-center justify-center">
+                <video
+                  src="/pitchbook-stadium.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover opacity-80"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+
+                {/* Telestrator Tactical Overlays */}
+                <div className="absolute top-4 left-4 bg-black/60 border border-white/20 px-3 py-1.5 rounded-lg text-xs font-mono text-emerald-400 backdrop-blur-sm">
+                  <span>CLIP 01 · 38:14 · HIGH-PRESS OVERLOAD</span>
+                </div>
+
+                <div className="absolute top-1/3 right-1/4 size-24 rounded-full border-2 border-dashed border-amber-400 animate-pulse flex items-center justify-center">
+                  <span className="text-[10px] font-bold text-amber-300 bg-black/80 px-2 py-0.5 rounded">
+                    VACATED SPACE
+                  </span>
+                </div>
+
+                <div className="absolute bottom-4 inset-x-4 flex items-center justify-between text-xs text-white">
+                  <div className="flex items-center gap-2">
+                    <button className="size-8 rounded-full bg-[#0fa05c] flex items-center justify-center text-white cursor-pointer shadow">
+                      <Play className="size-4 fill-white" />
+                    </button>
+                    <span className="font-mono text-slate-300">01:42 / 03:30</span>
+                  </div>
+                  <span className="text-slate-400 text-[11px]">Analysis: Mark Davies (Head Coach)</span>
+                </div>
+              </div>
+
+              {/* Clip Playlist & Coach Notes */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {[
+                  { title: "Left Flank Gap (38')", desc: "LB Daniel Murphy caught 35m out of position.", tag: "Transition Target" },
+                  { title: "Corner Near-Post (54')", desc: "Goalkeeper vacates 6-yard mark on outswinger.", tag: "Set-Piece Vulnerability" },
+                  { title: "Sterling Isolation (71')", desc: "Marcus Sterling marked tightly by Carlos Ramos.", tag: "Defensive Lock" },
+                ].map((clip, i) => (
+                  <div
+                    key={i}
+                    onClick={() => setActiveVideoTitle(clip.title)}
+                    className={`p-3 rounded-lg border transition cursor-pointer ${
+                      activeVideoTitle === clip.title
+                        ? "bg-[#0f2117] border-[#0fa05c] shadow"
+                        : "bg-white/5 border-white/10 hover:bg-white/10"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-emerald-400 uppercase">{clip.tag}</span>
+                      <Play className="size-3 text-slate-400" />
+                    </div>
+                    <h4 className="text-xs font-bold text-white mt-1">{clip.title}</h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{clip.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* INDIVIDUAL PLAYER DOSSIER MODAL */}
+      {/* ========================================================================= */}
       {selectedPlayerModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[#0b131e] border border-white/20 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl space-y-4 p-6">
@@ -1470,6 +2049,9 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ========================================================================= */}
+      {/* SCOUT TARGET MODAL */}
+      {/* ========================================================================= */}
       {selectedScoutTarget && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[#0b131e] border border-white/20 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl p-6 space-y-4">
@@ -1537,6 +2119,9 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ========================================================================= */}
+      {/* 4-PAGE PRINTABLE MATCHDAY TACTICAL DOSSIER MODAL */}
+      {/* ========================================================================= */}
       {showDossierModal && (
         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-[#0b131e] border border-white/20 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
