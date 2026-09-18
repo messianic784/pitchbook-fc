@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
@@ -23,62 +23,116 @@ import {
   Search,
   Filter,
   ArrowUpRight,
-  UserCheck,
   FileText,
   DollarSign,
   ChevronRight,
   Sparkles,
+  Zap,
+  Sliders,
+  Printer,
+  ChevronDown,
+  RefreshCw,
+  Info,
+  Shield,
+  Target,
+  BarChart3,
+  Percent,
 } from "lucide-react";
+
+type Formation = "4-3-3" | "4-2-3-1" | "3-5-2" | "4-4-2";
 
 interface Player {
   id: string;
   name: string;
   number: number;
   position: string;
+  role: string;
   age: number;
   status: "AVAILABLE" | "REHAB" | "SUSPENDED";
-  rating: number;
+  fitness: number; // 0-100%
+  rating: number; // 1-10
   goals: number;
-  contractUntil: string;
+  assists: number;
+  marketValue: string;
   wage: string;
+  contractUntil: string;
+  acwr: number; // Acute:Chronic Workload Ratio (0.8 - 1.3 is sweet spot, >1.5 is high injury risk)
+  avatar: string;
 }
 
-const SQUAD_PLAYERS: Player[] = [
-  { id: "1", name: "Mateo Vargas", number: 9, position: "Striker", age: 24, status: "AVAILABLE", rating: 8.4, goals: 9, contractUntil: "2028", wage: "£14,500/w" },
-  { id: "2", name: "Lucas Silva", number: 10, position: "Attacking Mid", age: 26, status: "AVAILABLE", rating: 8.1, goals: 5, contractUntil: "2027", wage: "£16,000/w" },
-  { id: "3", name: "David Brennan", number: 4, position: "Center Back", age: 28, status: "AVAILABLE", rating: 7.8, goals: 1, contractUntil: "2027", wage: "£11,000/w" },
-  { id: "4", name: "Kofi Mensah", number: 7, position: "Right Winger", age: 22, status: "AVAILABLE", rating: 7.9, goals: 4, contractUntil: "2029", wage: "£9,500/w" },
-  { id: "5", name: "Julian Rossi", number: 1, position: "Goalkeeper", age: 30, status: "AVAILABLE", rating: 7.6, goals: 0, contractUntil: "2026", wage: "£12,000/w" },
-  { id: "6", name: "Liam O'Connor", number: 8, position: "Central Mid", age: 25, status: "REHAB", rating: 7.5, goals: 2, contractUntil: "2028", wage: "£10,000/w" },
-  { id: "7", name: "Henrik Lindqvist", number: 3, position: "Left Back", age: 23, status: "REHAB", rating: 7.4, goals: 0, contractUntil: "2027", wage: "£8,000/w" },
-  { id: "8", name: "Carlos Ramos", number: 5, position: "Defensive Mid", age: 27, status: "AVAILABLE", rating: 7.7, goals: 1, contractUntil: "2027", wage: "£13,000/w" },
-  { id: "9", name: "Amir Khan", number: 11, position: "Left Winger", age: 21, status: "AVAILABLE", rating: 7.6, goals: 3, contractUntil: "2029", wage: "£7,500/w" },
-  { id: "10", name: "Samuel Eto'o Jr", number: 19, position: "Striker", age: 19, status: "AVAILABLE", rating: 7.2, goals: 2, contractUntil: "2028", wage: "£4,000/w" },
-  { id: "11", name: "Nathan Walker", number: 2, position: "Right Back", age: 26, status: "AVAILABLE", rating: 7.5, goals: 0, contractUntil: "2026", wage: "£9,000/w" },
+const INITIAL_STARTERS: Player[] = [
+  { id: "1", name: "Julian Rossi", number: 1, position: "GK", role: "Sweeper Keeper", age: 30, status: "AVAILABLE", fitness: 98, rating: 7.6, goals: 0, assists: 0, marketValue: "£3.8M", wage: "£12,000/w", contractUntil: "2026", acwr: 1.02, avatar: "JR" },
+  { id: "2", name: "Nathan Walker", number: 2, position: "RB", role: "Inverted Wingback", age: 26, status: "AVAILABLE", fitness: 91, rating: 7.5, goals: 0, assists: 3, marketValue: "£5.2M", wage: "£9,000/w", contractUntil: "2026", acwr: 1.15, avatar: "NW" },
+  { id: "3", name: "David Brennan", number: 4, position: "CB", role: "Ball-Playing Defender (C)", age: 28, status: "AVAILABLE", fitness: 96, rating: 7.8, goals: 1, assists: 0, marketValue: "£8.5M", wage: "£11,000/w", contractUntil: "2027", acwr: 0.98, avatar: "DB" },
+  { id: "4", name: "Gabriel Souza", number: 6, position: "CB", role: "Covering Stopper", age: 25, status: "AVAILABLE", fitness: 94, rating: 7.7, goals: 0, assists: 0, marketValue: "£7.0M", wage: "£10,500/w", contractUntil: "2028", acwr: 1.05, avatar: "GS" },
+  { id: "5", name: "Henrik Lindqvist", number: 3, position: "LB", role: "Attacking Fullback", age: 23, status: "REHAB", fitness: 55, rating: 7.4, goals: 0, assists: 2, marketValue: "£4.5M", wage: "£8,000/w", contractUntil: "2027", acwr: 1.48, avatar: "HL" },
+  { id: "6", name: "Carlos Ramos", number: 5, position: "CDM", role: "Deep Anchor", age: 27, status: "AVAILABLE", fitness: 92, rating: 7.7, goals: 1, assists: 2, marketValue: "£9.0M", wage: "£13,000/w", contractUntil: "2027", acwr: 1.12, avatar: "CR" },
+  { id: "7", name: "Lucas Silva", number: 10, position: "CAM", role: "Advanced Playmaker", age: 26, status: "AVAILABLE", fitness: 95, rating: 8.1, goals: 5, assists: 7, marketValue: "£14.2M", wage: "£16,000/w", contractUntil: "2027", acwr: 1.08, avatar: "LS" },
+  { id: "8", name: "Liam O'Connor", number: 8, position: "CM", role: "Box-to-Box Mid", age: 25, status: "REHAB", fitness: 75, rating: 7.5, goals: 2, assists: 3, marketValue: "£7.8M", wage: "£10,000/w", contractUntil: "2028", acwr: 1.55, avatar: "LO" },
+  { id: "9", name: "Kofi Mensah", number: 7, position: "RW", role: "Inside Forward", age: 22, status: "AVAILABLE", fitness: 93, rating: 7.9, goals: 4, assists: 5, marketValue: "£11.0M", wage: "£9,500/w", contractUntil: "2029", acwr: 1.18, avatar: "KM" },
+  { id: "10", name: "Mateo Vargas", number: 9, position: "ST", role: "Complete Forward", age: 24, status: "AVAILABLE", fitness: 97, rating: 8.4, goals: 9, assists: 4, marketValue: "£18.5M", wage: "£14,500/w", contractUntil: "2028", acwr: 1.05, avatar: "MV" },
+  { id: "11", name: "Amir Khan", number: 11, position: "LW", role: "Direct Winger", age: 21, status: "AVAILABLE", fitness: 90, rating: 7.6, goals: 3, assists: 4, marketValue: "£6.8M", wage: "£7,500/w", contractUntil: "2029", acwr: 1.22, avatar: "AK" },
+];
+
+const INITIAL_BENCH: Player[] = [
+  { id: "12", name: "Marco Vieri", number: 12, position: "GK", role: "Backup Keeper", age: 22, status: "AVAILABLE", fitness: 99, rating: 6.9, goals: 0, assists: 0, marketValue: "£1.2M", wage: "£4,000/w", contractUntil: "2027", acwr: 0.95, avatar: "MV" },
+  { id: "13", name: "Samuel Eto'o Jr", number: 19, position: "ST", role: "Poacher / Target Man", age: 19, status: "AVAILABLE", fitness: 96, rating: 7.2, goals: 2, assists: 1, marketValue: "£3.5M", wage: "£4,500/w", contractUntil: "2028", acwr: 1.02, avatar: "SE" },
+  { id: "14", name: "Tariq Lamptey", number: 14, position: "RB", role: "Attacking Wingback", age: 24, status: "AVAILABLE", fitness: 88, rating: 7.3, goals: 0, assists: 2, marketValue: "£4.2M", wage: "£6,500/w", contractUntil: "2027", acwr: 1.10, avatar: "TL" },
+  { id: "15", name: "Viktor Jensen", number: 16, position: "CB", role: "Traditional Stopper", age: 27, status: "AVAILABLE", fitness: 92, rating: 7.1, goals: 1, assists: 0, marketValue: "£3.0M", wage: "£5,500/w", contractUntil: "2026", acwr: 0.99, avatar: "VJ" },
+  { id: "16", name: "Matteo Guendouzi", number: 20, position: "CM", role: "Deep Regista", age: 23, status: "AVAILABLE", fitness: 94, rating: 7.4, goals: 1, assists: 2, marketValue: "£5.8M", wage: "£7,000/w", contractUntil: "2028", acwr: 1.05, avatar: "MG" },
+  { id: "17", name: "Kenzo Tanaka", number: 22, position: "CAM", role: "Shadow Striker", age: 20, status: "AVAILABLE", fitness: 95, rating: 7.3, goals: 2, assists: 3, marketValue: "£4.0M", wage: "£5,000/w", contractUntil: "2029", acwr: 1.09, avatar: "KT" },
+  { id: "18", name: "Ben Chilwell", number: 18, position: "LB", role: "Inverted Wingback", age: 27, status: "AVAILABLE", fitness: 89, rating: 7.2, goals: 0, assists: 1, marketValue: "£3.6M", wage: "£6,000/w", contractUntil: "2027", acwr: 1.14, avatar: "BC" },
 ];
 
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("squad");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [formation, setFormation] = useState<Formation>("4-3-3");
+  const [matchMinute, setMatchMinute] = useState(0);
+  const [showTacticalHeatmap, setShowTacticalHeatmap] = useState(false);
+  const [showDossierModal, setShowDossierModal] = useState(false);
 
-  const availableCount = SQUAD_PLAYERS.filter((p) => p.status === "AVAILABLE").length;
-  const rehabCount = SQUAD_PLAYERS.filter((p) => p.status === "REHAB").length;
+  const [starters, setStarters] = useState<Player[]>(INITIAL_STARTERS);
+  const [bench, setBench] = useState<Player[]>(INITIAL_BENCH);
+  const [selectedPlayerToSwap, setSelectedPlayerToSwap] = useState<Player | null>(null);
 
-  const handleTabChange = (tabId: string) => {
-    setActiveTab(tabId);
-    setSidebarOpen(false); // Auto close sidebar on mobile when clicked
+  // Computed Squad Metrics
+  const totalMarketValue = "£88.5M";
+  const wageBillAnnual = "£5.42M";
+  const psrMargin = "+£14.2M";
+  const matchFitCount = starters.filter(p => p.status === "AVAILABLE").length;
+
+  const handleSwap = (playerA: Player, playerB: Player) => {
+    // If playerA is in starters and playerB is in bench
+    const isAStarter = starters.some(p => p.id === playerA.id);
+    const isBStarter = starters.some(p => p.id === playerB.id);
+
+    if (isAStarter && !isBStarter) {
+      setStarters(starters.map(p => p.id === playerA.id ? playerB : p));
+      setBench(bench.map(p => p.id === playerB.id ? playerA : p));
+    } else if (!isAStarter && isBStarter) {
+      setBench(bench.map(p => p.id === playerA.id ? playerB : p));
+      setStarters(starters.map(p => p.id === playerB.id ? playerA : p));
+    } else if (isAStarter && isBStarter) {
+      // Both in starters, just exchange positions
+      setStarters(starters.map(p => {
+        if (p.id === playerA.id) return playerB;
+        if (p.id === playerB.id) return playerA;
+        return p;
+      }));
+    }
+    setSelectedPlayerToSwap(null);
   };
 
   return (
-    <div className="min-h-screen bg-[#060c13] text-[#eaeff5] flex flex-col">
-      {/* Top Navigation Bar */}
-      <header className="h-16 border-b border-white/10 bg-[#0a111a]/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
+    <div className="min-h-screen bg-[#060c13] text-[#eaeff5] flex flex-col font-sans">
+      {/* ENTERPRISE HEADER BAR */}
+      <header className="h-16 border-b border-white/10 bg-[#0a111a]/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40">
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-white/10 text-slate-300 transition"
+            className="md:hidden p-2 rounded-lg hover:bg-white/10 text-slate-300 transition cursor-pointer"
             aria-label="Toggle menu"
           >
             {sidebarOpen ? <X className="size-5 text-white" /> : <Menu className="size-5 text-white" />}
@@ -89,33 +143,51 @@ export default function DashboardPage() {
               <ShieldCheck className="size-4.5" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-base tracking-tight text-white">Pitchbook</span>
-              <span className="hidden xs:inline text-[10px] uppercase font-semibold px-2 py-0.5 rounded bg-[#0fa05c]/20 text-[#0fa05c] border border-[#0fa05c]/30">
-                Riverside FC
+              <span className="font-extrabold text-base tracking-tight text-white">PITCHBOOK FC</span>
+              <span className="hidden sm:inline-block text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#0fa05c]/20 text-[#0fa05c] border border-[#0fa05c]/40">
+                PRO ENTERPRISE
               </span>
             </div>
           </Link>
         </div>
 
-        {/* Quick Info & Role Switcher / Sign out */}
-        <div className="flex items-center gap-3">
-          <div className="hidden lg:flex items-center gap-2 bg-[#121b27] border border-white/10 px-3 py-1.5 rounded-lg text-xs">
-            <span className="size-2 rounded-full bg-[#0fa05c] animate-pulse" />
-            <span className="text-slate-300">Next: <strong className="text-white">vs Lakeside United</strong></span>
-            <span className="text-slate-400">· Sat 15:00 Home</span>
+        {/* Live Match Countdown & PSR Compliance Gauge */}
+        <div className="flex items-center gap-2.5">
+          {/* PSR Financial Compliance Tag */}
+          <div className="hidden lg:flex items-center gap-1.5 bg-[#0f2117] border border-[#0fa05c]/30 px-3 py-1.5 rounded-lg text-xs">
+            <Shield className="size-3.5 text-[#0fa05c]" />
+            <span className="text-slate-300">PSR Status:</span>
+            <strong className="text-[#0fa05c] font-mono">{psrMargin} SAFE</strong>
           </div>
+
+          {/* Next Fixture Countdown */}
+          <div className="hidden sm:flex items-center gap-2 bg-[#121b27] border border-white/10 px-3 py-1.5 rounded-lg text-xs">
+            <span className="size-2 rounded-full bg-[#0fa05c] animate-pulse" />
+            <span className="text-slate-300">Matchday 22:</span>
+            <strong className="text-white">vs Lakeside Utd</strong>
+            <span className="text-slate-400 font-mono">Sat 15:00</span>
+          </div>
+
+          {/* Export Tactical Dossier Button */}
+          <button
+            onClick={() => setShowDossierModal(true)}
+            className="flex items-center gap-1.5 text-xs font-semibold bg-[#0fa05c] hover:bg-[#0fa05c]/90 text-white px-3 py-1.5 rounded-lg shadow-sm transition cursor-pointer"
+          >
+            <Printer className="size-3.5" />
+            <span className="hidden sm:inline">Tactical Dossier (PDF)</span>
+          </button>
 
           <Link
             href="/login"
-            className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/10 transition"
+            className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white px-2.5 py-1.5 rounded-lg border border-white/10 hover:bg-white/10 transition"
           >
             <LogOut className="size-3.5 text-slate-400" />
-            <span>Switch Role</span>
+            <span className="hidden md:inline">Role</span>
           </Link>
         </div>
       </header>
 
-      {/* Main Body Layout */}
+      {/* MAIN VIEWPORT */}
       <div className="flex flex-1 relative overflow-hidden">
         {/* Mobile Backdrop Overlay */}
         {sidebarOpen && (
@@ -125,27 +197,28 @@ export default function DashboardPage() {
           />
         )}
 
-        {/* Sidebar Navigation */}
+        {/* ENTERPRISE SIDEBAR NAVIGATION */}
         <aside
           className={`${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           } md:translate-x-0 fixed md:static inset-y-16 md:inset-auto left-0 z-30 w-64 border-r border-white/10 bg-[#090f18] transition-transform duration-200 ease-in-out flex flex-col justify-between shrink-0 shadow-2xl md:shadow-none`}
         >
           <div className="p-3 space-y-1 overflow-y-auto">
-            <div className="px-3 py-2 text-[10px] uppercase font-bold tracking-wider text-slate-400">
-              Club Management
+            <div className="px-3 py-2 text-[10px] uppercase font-extrabold tracking-wider text-slate-400 flex items-center justify-between">
+              <span>Club Departments</span>
+              <span className="text-[9px] bg-white/10 px-1.5 py-0.2 rounded font-mono">1st Team</span>
             </div>
 
             {[
-              { id: "overview", label: "Executive Overview", icon: Activity },
-              { id: "squad", label: "Squad & Lineup", icon: Users, badge: `${availableCount} fit` },
-              { id: "medical", label: "Medical & Rehab", icon: HeartPulse, badge: `${rehabCount} in rehab`, badgeColor: "text-amber-400 bg-amber-400/15 border-amber-400/30" },
-              { id: "scouting", label: "Scouting Pipeline", icon: Binoculars, badge: "5 trials" },
-              { id: "matches", label: "Matches & Tactics", icon: Trophy },
-              { id: "training", label: "Training Workload", icon: TrendingUp },
-              { id: "academy", label: "Youth Academy", icon: GraduationCap },
-              { id: "finance", label: "Finance & Contracts", icon: Wallet },
-              { id: "calendar", label: "Club Schedule", icon: CalendarDays },
+              { id: "squad", label: "Squad & 3D Pitchboard", icon: Users, badge: `${matchFitCount}/11 Fit`, badgeColor: "text-emerald-400 bg-emerald-400/10 border-emerald-400/30" },
+              { id: "shadow", label: "Shadow Squad (Depth)", icon: Target, badge: "Shortlist", badgeColor: "text-cyan-400 bg-cyan-400/10 border-cyan-400/30" },
+              { id: "medical", label: "Medical & GPS ACWR", icon: HeartPulse, badge: "2 in Rehab", badgeColor: "text-amber-400 bg-amber-400/15 border-amber-400/30" },
+              { id: "scouting", label: "Recruitment Pipeline", icon: Binoculars, badge: "34 Targets" },
+              { id: "matches", label: "Opposition Scouting", icon: Trophy },
+              { id: "finance", label: "Financials & PSR Cap", icon: Wallet, badge: "£88.5M Value" },
+              { id: "training", label: "Training GPS Load", icon: TrendingUp },
+              { id: "academy", label: "Youth Development", icon: GraduationCap, badge: "64 Prospects" },
+              { id: "calendar", label: "Integrated Calendar", icon: CalendarDays },
             ].map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -153,10 +226,13 @@ export default function DashboardPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => handleTabChange(item.id)}
+                  onClick={() => {
+                    setActiveTab(item.id);
+                    setSidebarOpen(false);
+                  }}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition cursor-pointer ${
                     isActive
-                      ? "bg-[#0fa05c] text-white font-semibold shadow-md shadow-[#0fa05c]/20"
+                      ? "bg-[#0fa05c] text-white font-bold shadow-md shadow-[#0fa05c]/25"
                       : "text-slate-300 hover:text-white hover:bg-white/5"
                   }`}
                 >
@@ -168,7 +244,7 @@ export default function DashboardPage() {
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
                         isActive
-                          ? "bg-black/25 text-white border-transparent"
+                          ? "bg-black/30 text-white border-transparent"
                           : item.badgeColor || "bg-white/5 text-slate-400 border-white/10"
                       }`}
                     >
@@ -180,649 +256,778 @@ export default function DashboardPage() {
             })}
           </div>
 
-          <div className="p-4 border-t border-white/10 text-xs text-slate-400">
-            <p className="font-semibold text-white">Riverside FC</p>
-            <p className="text-[11px] text-slate-400">Pitchbook Professional OS • 2026</p>
+          <div className="p-4 border-t border-white/10 text-xs text-slate-400 bg-[#070c14]">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-white">Riverside FC</span>
+              <span className="text-[10px] text-emerald-400 font-mono">ONLINE</span>
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">EFL Championship · Div 1</p>
           </div>
         </aside>
 
-        {/* Content Area — Dynamically switched based on activeTab */}
+        {/* MAIN DISPLAY VIEW */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto min-w-0 space-y-6">
-          {/* TAB 1: EXECUTIVE OVERVIEW */}
-          {activeTab === "overview" && (
+
+          {/* ========================================================================= */}
+          {/* TAB 1: SQUAD & 3D INTERACTIVE TACTICAL PITCHBOARD (THE FLAGSHIP 50K MODULE) */}
+          {/* ========================================================================= */}
+          {activeTab === "squad" && (
             <div className="space-y-6">
-              {/* Header Title */}
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Executive Club Overview</h1>
-                <p className="text-xs text-slate-400 mt-1">Real-time squad readiness, league performance, and operational status</p>
-              </div>
-
-              {/* 4 Metric Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
-                  <div className="flex items-center justify-between text-slate-400 mb-2">
-                    <span className="text-xs font-medium uppercase tracking-wider">Squad Available</span>
-                    <Users className="size-4 text-[#0fa05c]" />
+              {/* Module Header with Formation Switcher and In-Game Minute Simulation */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#0d141e] border border-white/10 rounded-2xl p-4 shadow-xl">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-[#0fa05c] animate-pulse" />
+                    <h1 className="text-xl font-bold text-white">Tactical Pitchboard & Matchday Starting XI</h1>
                   </div>
-                  <p className="text-2xl font-bold text-white">{availableCount}/{SQUAD_PLAYERS.length}</p>
-                  <p className="text-[11px] text-[#0fa05c] mt-1 flex items-center gap-1">
-                    <CheckCircle2 className="size-3" />
-                    <span>81.8% Match Fit</span>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Interactive line-up creator with real player fitness battery, role specializations, and bench swap
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
-                  <div className="flex items-center justify-between text-slate-400 mb-2">
-                    <span className="text-xs font-medium uppercase tracking-wider">League Form</span>
-                    <Trophy className="size-4 text-amber-400" />
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Formation Selector Dropdown */}
+                  <div className="flex items-center gap-1.5 bg-[#141d2b] border border-white/10 px-3 py-1.5 rounded-lg text-xs">
+                    <Sliders className="size-3.5 text-[#0fa05c]" />
+                    <span className="text-slate-400">Formation:</span>
+                    <select
+                      value={formation}
+                      onChange={(e) => setFormation(e.target.value as Formation)}
+                      className="bg-transparent font-bold text-white outline-none cursor-pointer"
+                    >
+                      <option value="4-3-3" className="bg-[#141d2b]">4-3-3 Attacking</option>
+                      <option value="4-2-3-1" className="bg-[#141d2b]">4-2-3-1 Modern Press</option>
+                      <option value="3-5-2" className="bg-[#141d2b]">3-5-2 Wingback Overload</option>
+                      <option value="4-4-2" className="bg-[#141d2b]">4-4-2 Diamond</option>
+                    </select>
                   </div>
-                  <p className="text-2xl font-bold text-white">14 Wins</p>
-                  <p className="text-[11px] text-slate-400 mt-1">62% Win Rate · 2nd Place</p>
-                </div>
 
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
-                  <div className="flex items-center justify-between text-slate-400 mb-2">
-                    <span className="text-xs font-medium uppercase tracking-wider">Medical Center</span>
-                    <HeartPulse className="size-4 text-rose-400" />
-                  </div>
-                  <p className="text-2xl font-bold text-white">{rehabCount} in Rehab</p>
-                  <p className="text-[11px] text-amber-400 mt-1 flex items-center gap-1">
-                    <AlertTriangle className="size-3" />
-                    <span>L. O&apos;Connor testing Fri</span>
-                  </p>
-                </div>
+                  {/* Tactical Heatmap Toggle */}
+                  <button
+                    onClick={() => setShowTacticalHeatmap(!showTacticalHeatmap)}
+                    className={`text-xs px-3 py-1.5 rounded-lg border font-semibold transition cursor-pointer ${
+                      showTacticalHeatmap
+                        ? "bg-amber-400/20 border-amber-400/40 text-amber-300"
+                        : "bg-[#141d2b] border-white/10 text-slate-300 hover:bg-white/5"
+                    }`}
+                  >
+                    {showTacticalHeatmap ? "🔥 Press Heatmap: ON" : "Tactical Heatmap"}
+                  </button>
 
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
-                  <div className="flex items-center justify-between text-slate-400 mb-2">
-                    <span className="text-xs font-medium uppercase tracking-wider">Scouting Pipeline</span>
-                    <Binoculars className="size-4 text-[#0fa05c]" />
-                  </div>
-                  <p className="text-2xl font-bold text-white">34 Prospects</p>
-                  <p className="text-[11px] text-slate-400 mt-1">5 in active 1st-team trial</p>
+                  {/* Reset Starting XI */}
+                  <button
+                    onClick={() => {
+                      setStarters(INITIAL_STARTERS);
+                      setBench(INITIAL_BENCH);
+                      setMatchMinute(0);
+                    }}
+                    className="p-1.5 rounded-lg border border-white/10 hover:bg-white/5 text-slate-400 hover:text-white"
+                    title="Reset to Default"
+                  >
+                    <RefreshCw className="size-4" />
+                  </button>
                 </div>
               </div>
 
-              {/* Next Fixture Banner */}
-              <div className="rounded-xl border border-white/10 bg-gradient-to-r from-[#0d1726] to-[#0f1f1d] p-5">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                  <div>
-                    <span className="rounded-full bg-[#0fa05c]/20 text-[#0fa05c] border border-[#0fa05c]/30 px-2.5 py-0.5 text-xs font-semibold uppercase">
-                      Upcoming Match
-                    </span>
-                    <h2 className="text-xl font-bold text-white mt-2">
-                      Riverside FC vs Lakeside United
-                    </h2>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Premier Division Matchday 22 • Riverside Stadium (Home) • Saturday 15:00
+              {/* In-Game Match Minute Fatigue Simulation Slider */}
+              <div className="bg-[#0b121c] border border-white/10 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="size-4 text-[#0fa05c]" />
+                  <span className="text-xs font-semibold text-white">In-Game Match Fatigue Simulator:</span>
+                  <span className="font-mono text-xs font-bold text-[#0fa05c] bg-[#0fa05c]/20 px-2 py-0.5 rounded">
+                    Minute {matchMinute}&apos;
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 flex-1 max-w-md">
+                  <span className="text-[10px] text-slate-400 font-mono">0&apos; (Kickoff)</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="90"
+                    value={matchMinute}
+                    onChange={(e) => setMatchMinute(Number(e.target.value))}
+                    className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-[#0fa05c]"
+                  />
+                  <span className="text-[10px] text-slate-400 font-mono">90&apos; (Full-time)</span>
+                </div>
+                {matchMinute > 60 && (
+                  <span className="text-[11px] font-semibold text-amber-400 flex items-center gap-1 animate-pulse">
+                    <AlertTriangle className="size-3" /> Sub Recommendations Active
+                  </span>
+                )}
+              </div>
+
+              {/* 2-COLUMN DISPLAY: THE VISUAL PITCH ON LEFT, INTERACTIVE BENCH ON RIGHT */}
+              <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                
+                {/* LEFT: THE INTERACTIVE DIGITAL GRASS PITCH (8 Cols) */}
+                <div className="xl:col-span-8 rounded-2xl border-2 border-[#16402a] bg-[#072413] p-4 sm:p-6 relative overflow-hidden shadow-2xl">
+                  {/* Pitch Realistic Field Markings */}
+                  <div className="absolute inset-0 pointer-events-none opacity-20 border-4 border-white m-3 sm:m-6 rounded-xl flex items-center justify-center">
+                    {/* Halfway Line */}
+                    <div className="absolute inset-x-0 h-0.5 bg-white top-1/2 -translate-y-1/2" />
+                    {/* Center Circle */}
+                    <div className="w-36 h-36 rounded-full border-2 border-white" />
+                    {/* Top Penalty Box */}
+                    <div className="absolute top-0 w-64 h-28 border-2 border-white border-t-0" />
+                    <div className="absolute top-0 w-28 h-12 border-2 border-white border-t-0" />
+                    {/* Bottom Penalty Box */}
+                    <div className="absolute bottom-0 w-64 h-28 border-2 border-white border-b-0" />
+                    <div className="absolute bottom-0 w-28 h-12 border-2 border-white border-b-0" />
+                  </div>
+
+                  {/* Optional High-Press Heatmap Overlay */}
+                  {showTacticalHeatmap && (
+                    <div className="absolute inset-0 pointer-events-none opacity-25 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-500 via-emerald-500 to-transparent mix-blend-screen" />
+                  )}
+
+                  {/* Pitch Header info */}
+                  <div className="relative z-10 flex items-center justify-between text-xs mb-6 text-white/90">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-[#0fa05c] tracking-widest uppercase text-sm">
+                        RIVERSIDE ARENA (HOME)
+                      </span>
+                      <span className="text-[11px] text-white/60">· Pitch Dim: 105m × 68m</span>
+                    </div>
+                    {selectedPlayerToSwap && (
+                      <span className="rounded-full bg-amber-400 text-black px-3 py-1 font-bold text-xs animate-bounce shadow-lg">
+                        Select a player to swap with {selectedPlayerToSwap.name}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* DYNAMIC PLAYER FORMATION MATRIX */}
+                  <div className="relative z-10 space-y-8 my-2 min-h-[520px] flex flex-col justify-between">
+                    
+                    {/* ROW 1: ATTACKERS (LW, ST, RW) */}
+                    <div className="flex justify-around items-center px-4">
+                      {starters.slice(8, 11).map((player) => {
+                        const simulatedFitness = Math.max(20, Math.round(player.fitness - (matchMinute * 0.45)));
+                        const isSelected = selectedPlayerToSwap?.id === player.id;
+                        return (
+                          <div
+                            key={player.id}
+                            onClick={() => {
+                              if (selectedPlayerToSwap) handleSwap(selectedPlayerToSwap, player);
+                              else setSelectedPlayerToSwap(player);
+                            }}
+                            className={`group relative bg-[#09141d]/95 hover:bg-[#0e2130] rounded-xl border p-2.5 text-center transition-all duration-150 cursor-pointer shadow-xl w-32 sm:w-36 ${
+                              isSelected
+                                ? "border-amber-400 ring-4 ring-amber-400/40 scale-105"
+                                : "border-white/20 hover:border-[#0fa05c]"
+                            }`}
+                          >
+                            {/* Number & Pos Badge */}
+                            <div className="flex items-center justify-between text-[10px] font-mono font-bold mb-1">
+                              <span className="size-5 rounded-full bg-[#0fa05c] text-white flex items-center justify-center shadow">
+                                {player.number}
+                              </span>
+                              <span className="text-[#0fa05c]">{player.position}</span>
+                            </div>
+
+                            {/* Player Name & Role */}
+                            <p className="text-xs font-extrabold text-white truncate">{player.name}</p>
+                            <p className="text-[9px] text-slate-400 truncate leading-tight">{player.role}</p>
+
+                            {/* Real-time Fitness Battery Bar */}
+                            <div className="mt-2 pt-1 border-t border-white/10 flex items-center justify-between text-[10px]">
+                              <span className="text-slate-400">Match Fit:</span>
+                              <span className={`font-mono font-bold ${simulatedFitness < 60 ? "text-rose-400" : simulatedFitness < 75 ? "text-amber-400" : "text-emerald-400"}`}>
+                                {simulatedFitness}%
+                              </span>
+                            </div>
+                            <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden mt-0.5">
+                              <div
+                                className={`h-full ${simulatedFitness < 60 ? "bg-rose-400" : simulatedFitness < 75 ? "bg-amber-400" : "bg-emerald-400"}`}
+                                style={{ width: `${simulatedFitness}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* ROW 2: MIDFIELDERS (CM, CAM, CDM) */}
+                    <div className="flex justify-around items-center px-8">
+                      {starters.slice(5, 8).map((player) => {
+                        const simulatedFitness = Math.max(20, Math.round(player.fitness - (matchMinute * 0.48)));
+                        const isSelected = selectedPlayerToSwap?.id === player.id;
+                        return (
+                          <div
+                            key={player.id}
+                            onClick={() => {
+                              if (selectedPlayerToSwap) handleSwap(selectedPlayerToSwap, player);
+                              else setSelectedPlayerToSwap(player);
+                            }}
+                            className={`group relative bg-[#09141d]/95 hover:bg-[#0e2130] rounded-xl border p-2.5 text-center transition-all duration-150 cursor-pointer shadow-xl w-32 sm:w-36 ${
+                              isSelected
+                                ? "border-amber-400 ring-4 ring-amber-400/40 scale-105"
+                                : "border-white/20 hover:border-[#0fa05c]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-[10px] font-mono font-bold mb-1">
+                              <span className="size-5 rounded-full bg-[#0fa05c] text-white flex items-center justify-center shadow">
+                                {player.number}
+                              </span>
+                              <span className="text-[#0fa05c]">{player.position}</span>
+                            </div>
+                            <p className="text-xs font-extrabold text-white truncate">{player.name}</p>
+                            <p className="text-[9px] text-slate-400 truncate leading-tight">{player.role}</p>
+
+                            <div className="mt-2 pt-1 border-t border-white/10 flex items-center justify-between text-[10px]">
+                              <span className="text-slate-400">Match Fit:</span>
+                              <span className={`font-mono font-bold ${simulatedFitness < 60 ? "text-rose-400" : simulatedFitness < 75 ? "text-amber-400" : "text-emerald-400"}`}>
+                                {simulatedFitness}%
+                              </span>
+                            </div>
+                            <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden mt-0.5">
+                              <div
+                                className={`h-full ${simulatedFitness < 60 ? "bg-rose-400" : simulatedFitness < 75 ? "bg-amber-400" : "bg-emerald-400"}`}
+                                style={{ width: `${simulatedFitness}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* ROW 3: DEFENDERS (LB, CB, CB, RB) */}
+                    <div className="flex justify-around items-center px-2">
+                      {starters.slice(1, 5).map((player) => {
+                        const simulatedFitness = Math.max(20, Math.round(player.fitness - (matchMinute * 0.40)));
+                        const isSelected = selectedPlayerToSwap?.id === player.id;
+                        return (
+                          <div
+                            key={player.id}
+                            onClick={() => {
+                              if (selectedPlayerToSwap) handleSwap(selectedPlayerToSwap, player);
+                              else setSelectedPlayerToSwap(player);
+                            }}
+                            className={`group relative bg-[#09141d]/95 hover:bg-[#0e2130] rounded-xl border p-2 text-center transition-all duration-150 cursor-pointer shadow-xl w-28 sm:w-32 ${
+                              isSelected
+                                ? "border-amber-400 ring-4 ring-amber-400/40 scale-105"
+                                : "border-white/20 hover:border-[#0fa05c]"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-[10px] font-mono font-bold mb-1">
+                              <span className="size-4.5 rounded-full bg-[#0fa05c] text-white flex items-center justify-center shadow text-[10px]">
+                                {player.number}
+                              </span>
+                              <span className="text-[#0fa05c]">{player.position}</span>
+                            </div>
+                            <p className="text-xs font-extrabold text-white truncate">{player.name}</p>
+                            <p className="text-[9px] text-slate-400 truncate leading-tight">{player.role}</p>
+
+                            <div className="mt-1.5 pt-1 border-t border-white/10 flex items-center justify-between text-[9px]">
+                              <span className="text-slate-400">Fit:</span>
+                              <span className="font-mono font-bold text-emerald-400">{simulatedFitness}%</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* ROW 4: GOALKEEPER */}
+                    <div className="flex justify-center items-center">
+                      {starters.slice(0, 1).map((player) => {
+                        const isSelected = selectedPlayerToSwap?.id === player.id;
+                        return (
+                          <div
+                            key={player.id}
+                            onClick={() => {
+                              if (selectedPlayerToSwap) handleSwap(selectedPlayerToSwap, player);
+                              else setSelectedPlayerToSwap(player);
+                            }}
+                            className={`group relative bg-[#121924]/95 hover:bg-[#182333] rounded-xl border p-2.5 text-center transition-all duration-150 cursor-pointer shadow-xl w-36 ${
+                              isSelected
+                                ? "border-amber-400 ring-4 ring-amber-400/40 scale-105"
+                                : "border-amber-400/40 hover:border-amber-400"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-[10px] font-mono font-bold mb-1">
+                              <span className="size-5 rounded-full bg-amber-400 text-black flex items-center justify-center shadow font-bold">
+                                {player.number}
+                              </span>
+                              <span className="text-amber-400 font-bold">GK</span>
+                            </div>
+                            <p className="text-xs font-extrabold text-white truncate">{player.name}</p>
+                            <p className="text-[9px] text-amber-300/80">{player.role}</p>
+                            <div className="mt-1 pt-1 border-t border-white/10 text-[10px] text-slate-400 flex justify-between">
+                              <span>Fit:</span>
+                              <span className="font-mono text-emerald-400 font-bold">{player.fitness}%</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* RIGHT: INTERACTIVE BENCH & SUBSTITUTE SQUAD (4 Cols) */}
+                <div className="xl:col-span-4 space-y-4">
+                  <div className="rounded-2xl border border-white/10 bg-[#0d141e] p-4 shadow-xl">
+                    <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                      <div>
+                        <h3 className="text-sm font-bold text-white">Substitutes & Reserves</h3>
+                        <p className="text-[11px] text-slate-400">Click any bench player to swap into Starting XI</p>
+                      </div>
+                      <span className="text-[11px] font-mono bg-[#141d2b] text-[#0fa05c] px-2 py-0.5 rounded border border-white/5">
+                        {bench.length} on Bench
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-white/5 mt-2 max-h-[460px] overflow-y-auto">
+                      {bench.map((player) => {
+                        const isSelected = selectedPlayerToSwap?.id === player.id;
+                        return (
+                          <div
+                            key={player.id}
+                            onClick={() => {
+                              if (selectedPlayerToSwap) handleSwap(selectedPlayerToSwap, player);
+                              else setSelectedPlayerToSwap(player);
+                            }}
+                            className={`py-2.5 px-2 rounded-lg flex items-center justify-between transition cursor-pointer ${
+                              isSelected
+                                ? "bg-amber-400/20 border border-amber-400"
+                                : "hover:bg-white/5"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <span className="size-6 rounded-md bg-white/10 text-white font-mono text-xs flex items-center justify-center font-bold">
+                                {player.number}
+                              </span>
+                              <div>
+                                <p className="text-xs font-bold text-white leading-tight">{player.name}</p>
+                                <p className="text-[10px] text-slate-400">{player.position} · {player.role}</p>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <span className="text-xs font-mono font-bold text-[#0fa05c]">⭐ {player.rating}</span>
+                              <p className="text-[10px] text-slate-400">Fit: {player.fitness}%</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Tactical Coaching Advice Card */}
+                  <div className="rounded-xl border border-emerald-500/20 bg-[#0f1f17] p-4">
+                    <div className="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider mb-1.5">
+                      <Sparkles className="size-3.5" />
+                      <span>Coaching Intelligence</span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      Lakeside United tire significantly around minute 70&apos; in their midfield pivot. Introducing <strong>Samuel Eto&apos;o Jr</strong> at minute 65&apos; offers a +28% counter-attack transition advantage.
                     </p>
                   </div>
-
-                  <button
-                    onClick={() => handleTabChange("squad")}
-                    className="rounded-lg bg-[#0fa05c] hover:bg-[#0fa05c]/90 text-white text-xs font-semibold px-4 py-2.5 shadow transition"
-                  >
-                    View Starting Lineup →
-                  </button>
-                </div>
-              </div>
-
-              {/* Squad Preview */}
-              <div className="rounded-xl border border-white/10 bg-[#0d141e] overflow-hidden">
-                <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                      Active Squad Availability
-                    </h3>
-                    <p className="text-xs text-slate-400">First-team ratings, status, and season stats</p>
-                  </div>
-                  <button
-                    onClick={() => handleTabChange("squad")}
-                    className="text-xs text-[#0fa05c] hover:underline font-semibold"
-                  >
-                    Open Full Squad Manager →
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#121b27] text-slate-400 border-b border-white/5 uppercase font-mono text-[10px]">
-                      <tr>
-                        <th className="p-3">#</th>
-                        <th className="p-3">Player</th>
-                        <th className="p-3">Position</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3">Rating</th>
-                        <th className="p-3">Goals</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {SQUAD_PLAYERS.slice(0, 5).map((p) => (
-                        <tr key={p.id} className="hover:bg-white/5 transition-colors">
-                          <td className="p-3 font-mono font-bold text-slate-400">{p.number}</td>
-                          <td className="p-3 font-semibold text-white">{p.name}</td>
-                          <td className="p-3 text-slate-300">{p.position}</td>
-                          <td className="p-3">
-                            <span className="inline-flex items-center gap-1 rounded-full bg-[#0fa05c]/15 text-[#0fa05c] border border-[#0fa05c]/30 px-2 py-0.5 text-[10px] font-semibold">
-                              Available
-                            </span>
-                          </td>
-                          <td className="p-3 font-mono text-[#0fa05c] font-semibold">{p.rating}</td>
-                          <td className="p-3 font-mono font-bold text-white">{p.goals}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 2: SQUAD & LINEUP */}
-          {activeTab === "squad" && (
+          {/* ========================================================================= */}
+          {/* TAB 2: SHADOW SQUAD DEPTH CHART (THE RECRUITMENT ASSET MATRIX) */}
+          {/* ========================================================================= */}
+          {activeTab === "shadow" && (
             <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
                 <div>
-                  <h1 className="text-2xl font-bold text-white tracking-tight">Squad Management & Match Lineup</h1>
-                  <p className="text-xs text-slate-400 mt-1">4-3-3 formation against Lakeside United with player contracts</p>
+                  <h1 className="text-xl font-bold text-white">Shadow Squad & Succession Planning</h1>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Tier 1 (Starter) vs Tier 2 (Internal Backup) vs Tier 3 (External Scouted Target)
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 text-xs font-mono bg-[#141d2b] px-3 py-1.5 rounded-lg border border-white/10 text-[#0fa05c]">
+                  <span>Total Asset Depth: £142.8M</span>
+                </div>
+              </div>
+
+              {/* 3-Tier Succession Cards per Key Role */}
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                {[
+                  {
+                    pos: "Striker (ST)",
+                    starter: { name: "Mateo Vargas", age: 24, val: "£18.5M", rat: 8.4, status: "Starter" },
+                    backup: { name: "Samuel Eto'o Jr", age: 19, val: "£3.5M", rat: 7.2, status: "Academy Tier 1" },
+                    target: { name: "Yannick N'Diaye", club: "Dakar Acad.", age: 18, est: "£450K", grade: "A+" },
+                  },
+                  {
+                    pos: "Attacking Mid (CAM)",
+                    starter: { name: "Lucas Silva", age: 26, val: "£14.2M", rat: 8.1, status: "Starter" },
+                    backup: { name: "Kenzo Tanaka", age: 20, val: "£4.0M", rat: 7.3, status: "Internal Sub" },
+                    target: { name: "Emil Berg", club: "Malmö FF", age: 21, est: "£1.8M", grade: "A" },
+                  },
+                  {
+                    pos: "Center Back (CB)",
+                    starter: { name: "David Brennan (C)", age: 28, val: "£8.5M", rat: 7.8, status: "Starter" },
+                    backup: { name: "Viktor Jensen", age: 27, val: "£3.0M", rat: 7.1, status: "Internal Sub" },
+                    target: { name: "Lauri Virtanen", club: "HJK Helsinki", age: 20, est: "£850K", grade: "A-" },
+                  },
+                ].map((col, idx) => (
+                  <div key={idx} className="rounded-xl border border-white/10 bg-[#0d141e] p-4 space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                      <span className="text-xs font-extrabold uppercase text-[#0fa05c]">{col.pos}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">Position Depth: 3 Deep</span>
+                    </div>
+
+                    {/* Tier 1: Current Starter */}
+                    <div className="rounded-lg border border-[#0fa05c]/30 bg-[#0f2117] p-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] uppercase font-bold text-emerald-400 bg-emerald-400/15 px-1.5 py-0.2 rounded">
+                          Tier 1 · Starter
+                        </span>
+                        <span className="text-xs font-bold text-white font-mono">{col.starter.val}</span>
+                      </div>
+                      <p className="text-xs font-bold text-white mt-1.5">{col.starter.name}</p>
+                      <p className="text-[10px] text-slate-300">Age: {col.starter.age} · Rating: <strong className="text-emerald-400">{col.starter.rat}</strong></p>
+                    </div>
+
+                    {/* Tier 2: Internal Backup */}
+                    <div className="rounded-lg border border-white/10 bg-[#121b27] p-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] uppercase font-bold text-cyan-300 bg-cyan-400/15 px-1.5 py-0.2 rounded">
+                          Tier 2 · Internal
+                        </span>
+                        <span className="text-xs font-bold text-white font-mono">{col.backup.val}</span>
+                      </div>
+                      <p className="text-xs font-bold text-white mt-1.5">{col.backup.name}</p>
+                      <p className="text-[10px] text-slate-400">Age: {col.backup.age} · Rating: <strong className="text-cyan-300">{col.backup.rat}</strong></p>
+                    </div>
+
+                    {/* Tier 3: External Target */}
+                    <div className="rounded-lg border border-amber-400/30 bg-[#191918] p-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] uppercase font-bold text-amber-400 bg-amber-400/15 px-1.5 py-0.2 rounded">
+                          Tier 3 · Scout Target
+                        </span>
+                        <span className="text-xs font-bold text-amber-300 font-mono">Est: {col.target.est}</span>
+                      </div>
+                      <p className="text-xs font-bold text-white mt-1.5">{col.target.name}</p>
+                      <p className="text-[10px] text-slate-400">{col.target.club} · Scout Grade: <strong className="text-amber-400">{col.target.grade}</strong></p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 3: MEDICAL & ACUTE:CHRONIC GPS WORKLOAD (PREVENTS POINT DEDUCTION) */}
+          {/* ========================================================================= */}
+          {activeTab === "medical" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
+                <div>
+                  <h1 className="text-xl font-bold text-white">Medical Center & GPS Workload Telemetry</h1>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Acute:Chronic Workload Ratio (ACWR) soft-tissue injury risk monitoring
+                  </p>
+                </div>
+                <span className="text-xs bg-rose-500/15 text-rose-400 border border-rose-500/30 px-3 py-1.5 rounded-lg font-semibold">
+                  2 Active Rehabilitation Cases
+                </span>
+              </div>
+
+              {/* Live ACWR Risk Meter */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="rounded-xl border border-amber-500/30 bg-[#141b24] p-5 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-rose-400 bg-rose-400/10 border border-rose-400/20 px-2 py-0.5 rounded-full uppercase">
+                        High Workload Spike (ACWR: 1.55)
+                      </span>
+                      <h3 className="text-base font-bold text-white mt-2">Liam O&apos;Connor (#8 CM)</h3>
+                      <p className="text-xs text-slate-400">Right Bicep Femoris Grade II Strain</p>
+                    </div>
+                    <HeartPulse className="size-6 text-rose-400" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs text-slate-300">
+                      <span>Rehab Protocol Progression: Stage 3 of 4</span>
+                      <strong className="text-emerald-400">75% Fit</strong>
+                    </div>
+                    <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+                      <div className="bg-[#0fa05c] h-full rounded-full" style={{ width: "75%" }} />
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-black/40 rounded-lg text-xs space-y-1 text-slate-300 border border-white/5">
+                    <p className="flex justify-between"><span>GPS Sprint Distance:</span> <strong className="text-white font-mono">1,120m (Limit: 900m)</strong></p>
+                    <p className="flex justify-between"><span>Return-to-Play Clearance:</span> <strong className="text-emerald-400 font-mono">Next Tuesday</strong></p>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-amber-500/30 bg-[#141b24] p-5 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full uppercase">
+                        Moderate Risk (ACWR: 1.48)
+                      </span>
+                      <h3 className="text-base font-bold text-white mt-2">Henrik Lindqvist (#3 LB)</h3>
+                      <p className="text-xs text-slate-400">Lateral Ankle Ligament Sprain</p>
+                    </div>
+                    <HeartPulse className="size-6 text-amber-400" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs text-slate-300">
+                      <span>Rehab Protocol Progression: Stage 2 of 4</span>
+                      <strong className="text-amber-400">55% Fit</strong>
+                    </div>
+                    <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+                      <div className="bg-amber-400 h-full rounded-full" style={{ width: "55%" }} />
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-black/40 rounded-lg text-xs space-y-1 text-slate-300 border border-white/5">
+                    <p className="flex justify-between"><span>Physio Assessment:</span> <strong className="text-white font-mono">Proprioception Passed</strong></p>
+                    <p className="flex justify-between"><span>Target Full Training:</span> <strong className="text-amber-400 font-mono">In 6 Days</strong></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================================= */}
+          {/* TAB 4: FINANCIALS & PSR / FFP COMPLIANCE BOARD (THE BOARDROOM TOOL) */}
+          {/* ========================================================================= */}
+          {activeTab === "finance" && (
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
+                <div>
+                  <h1 className="text-xl font-bold text-white">Club Financial Health & Profitability & Sustainability (PSR)</h1>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Wage-to-Turnover ratio, player book amortization, and rolling 3-year PSR monitoring
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs bg-[#0fa05c]/15 text-[#0fa05c] border border-[#0fa05c]/30 px-3 py-1.5 rounded-lg font-semibold">
-                    Formation: 4-3-3 Attacking
+                  <span className="text-xs font-mono bg-[#0fa05c]/20 text-[#0fa05c] border border-[#0fa05c]/30 px-3 py-1.5 rounded-lg font-bold">
+                    UEFA Rule Compliance: 54% (Limit: 70%)
                   </span>
                 </div>
               </div>
 
-              {/* Tactical Pitch Board */}
-              <div className="rounded-xl border border-white/10 bg-[#0b1b14] p-6 relative overflow-hidden shadow-inner">
-                <div className="absolute inset-0 opacity-15 pointer-events-none border-2 border-white/40 m-4 rounded-lg flex items-center justify-center">
-                  <div className="w-32 h-32 rounded-full border-2 border-white/40" />
-                  <div className="absolute top-0 w-48 h-20 border-2 border-white/40 border-t-0" />
-                  <div className="absolute bottom-0 w-48 h-20 border-2 border-white/40 border-b-0" />
+              {/* Financial KPI Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Squad Asset Value</span>
+                  <p className="text-2xl font-bold text-white mt-1">{totalMarketValue}</p>
+                  <p className="text-[10px] text-emerald-400 mt-0.5">+14% vs purchase cost</p>
                 </div>
 
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#0fa05c] mb-6 flex items-center gap-1.5">
-                  <Trophy className="size-4" />
-                  Starting XI (Tactical Matchboard)
-                </h3>
+                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Annual Wage Bill</span>
+                  <p className="text-2xl font-bold text-white mt-1">{wageBillAnnual}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">£104,200 / week total</p>
+                </div>
 
-                {/* Pitch Player Positions */}
-                <div className="grid grid-rows-4 gap-6 relative z-10 text-center max-w-xl mx-auto">
-                  {/* Attackers */}
-                  <div className="flex justify-around">
-                    <div className="bg-[#0d141e]/90 border border-[#0fa05c] rounded-lg p-2 shadow-lg w-28">
-                      <span className="block text-[10px] text-[#0fa05c] font-bold">LW · #11</span>
-                      <span className="block text-xs font-bold text-white truncate">A. Khan</span>
-                    </div>
-                    <div className="bg-[#0d141e]/90 border border-[#0fa05c] rounded-lg p-2 shadow-lg w-28 scale-105 ring-2 ring-[#0fa05c]/40">
-                      <span className="block text-[10px] text-[#0fa05c] font-bold">ST · #9</span>
-                      <span className="block text-xs font-bold text-white truncate">M. Vargas</span>
-                      <span className="block text-[9px] text-amber-400">9 Goals</span>
-                    </div>
-                    <div className="bg-[#0d141e]/90 border border-[#0fa05c] rounded-lg p-2 shadow-lg w-28">
-                      <span className="block text-[10px] text-[#0fa05c] font-bold">RW · #7</span>
-                      <span className="block text-xs font-bold text-white truncate">K. Mensah</span>
-                    </div>
-                  </div>
+                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Remaining Transfer Cap</span>
+                  <p className="text-2xl font-bold text-[#0fa05c] mt-1">£2.45M</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Winter window balance</p>
+                </div>
 
-                  {/* Midfielders */}
-                  <div className="flex justify-around">
-                    <div className="bg-[#0d141e]/90 border border-white/20 rounded-lg p-2 shadow w-28">
-                      <span className="block text-[10px] text-slate-400 font-bold">CAM · #10</span>
-                      <span className="block text-xs font-bold text-white truncate">L. Silva</span>
-                    </div>
-                    <div className="bg-[#0d141e]/90 border border-white/20 rounded-lg p-2 shadow w-28">
-                      <span className="block text-[10px] text-slate-400 font-bold">CDM · #5</span>
-                      <span className="block text-xs font-bold text-white truncate">C. Ramos</span>
-                    </div>
-                  </div>
-
-                  {/* Defenders */}
-                  <div className="flex justify-around">
-                    <div className="bg-[#0d141e]/90 border border-white/20 rounded-lg p-2 shadow w-28">
-                      <span className="block text-[10px] text-slate-400 font-bold">LB · #3</span>
-                      <span className="block text-xs font-bold text-white truncate">Lindqvist</span>
-                    </div>
-                    <div className="bg-[#0d141e]/90 border border-white/20 rounded-lg p-2 shadow w-28">
-                      <span className="block text-[10px] text-slate-400 font-bold">CB · #4</span>
-                      <span className="block text-xs font-bold text-white truncate">D. Brennan</span>
-                    </div>
-                    <div className="bg-[#0d141e]/90 border border-white/20 rounded-lg p-2 shadow w-28">
-                      <span className="block text-[10px] text-slate-400 font-bold">RB · #2</span>
-                      <span className="block text-xs font-bold text-white truncate">N. Walker</span>
-                    </div>
-                  </div>
-
-                  {/* Goalkeeper */}
-                  <div className="flex justify-center">
-                    <div className="bg-[#0d141e]/90 border border-amber-400/50 rounded-lg p-2 shadow-lg w-28">
-                      <span className="block text-[10px] text-amber-400 font-bold">GK · #1</span>
-                      <span className="block text-xs font-bold text-white truncate">J. Rossi</span>
-                    </div>
-                  </div>
+                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Contracts Due 2026</span>
+                  <p className="text-2xl font-bold text-amber-400 mt-1">2 Players</p>
+                  <p className="text-[10px] text-amber-400 mt-0.5">Free Transfer Risk</p>
                 </div>
               </div>
 
-              {/* Squad List Table */}
+              {/* Contract Expiration Watchlist */}
               <div className="rounded-xl border border-white/10 bg-[#0d141e] overflow-hidden">
                 <div className="p-4 border-b border-white/10 flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">All First Team Squad ({SQUAD_PLAYERS.length})</h3>
-                  <span className="text-xs text-slate-400">Sorted by Squad Number</span>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#121b27] text-slate-400 border-b border-white/5 uppercase font-mono text-[10px]">
-                      <tr>
-                        <th className="p-3">#</th>
-                        <th className="p-3">Player</th>
-                        <th className="p-3">Position</th>
-                        <th className="p-3">Age</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3">Rating</th>
-                        <th className="p-3">Weekly Wage</th>
-                        <th className="p-3">Contract Expiry</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {SQUAD_PLAYERS.map((p) => (
-                        <tr key={p.id} className="hover:bg-white/5 transition-colors">
-                          <td className="p-3 font-mono font-bold text-slate-400">{p.number}</td>
-                          <td className="p-3 font-semibold text-white">{p.name}</td>
-                          <td className="p-3 text-slate-300">{p.position}</td>
-                          <td className="p-3 text-slate-400">{p.age}</td>
-                          <td className="p-3">
-                            {p.status === "AVAILABLE" ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[#0fa05c]/15 text-[#0fa05c] border border-[#0fa05c]/30 px-2 py-0.5 text-[10px] font-semibold">
-                                Match Fit
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 px-2 py-0.5 text-[10px] font-semibold">
-                                Rehab
-                              </span>
-                            )}
-                          </td>
-                          <td className="p-3 font-mono text-[#0fa05c] font-semibold">{p.rating}</td>
-                          <td className="p-3 font-mono text-slate-300">{p.wage}</td>
-                          <td className="p-3 text-slate-400 font-mono">{p.contractUntil}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 3: MEDICAL & REHAB */}
-          {activeTab === "medical" && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Medical Department & Injury Tracking</h1>
-                <p className="text-xs text-slate-400 mt-1">Daily injury status, physiotherapy treatment logs, and return-to-play clearances</p>
-              </div>
-
-              {/* Active Rehab Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="rounded-xl border border-amber-500/20 bg-[#161d28] p-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">
-                        Grade II Hamstring
-                      </span>
-                      <h3 className="text-base font-bold text-white mt-2">Liam O&apos;Connor (#8 Central Mid)</h3>
-                      <p className="text-xs text-slate-400 mt-1">Injured vs St. Marks · In Day 14 of 21</p>
-                    </div>
-                    <HeartPulse className="size-6 text-amber-400" />
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    <div className="flex justify-between text-xs text-slate-300">
-                      <span>Rehabilitation Progress</span>
-                      <span className="font-semibold text-amber-400">75% Complete</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
-                      <div className="h-full bg-amber-400 rounded-full" style={{ width: "75%" }} />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
-                    <span>Target Clearance: <strong>Next Tuesday</strong></span>
-                    <span className="text-[#0fa05c]">Cleared for Light Running</span>
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-amber-500/20 bg-[#161d28] p-5">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-full">
-                        Lateral Ankle Sprain
-                      </span>
-                      <h3 className="text-base font-bold text-white mt-2">Henrik Lindqvist (#3 Left Back)</h3>
-                      <p className="text-xs text-slate-400 mt-1">Training incident · In Day 8 of 14</p>
-                    </div>
-                    <HeartPulse className="size-6 text-amber-400" />
-                  </div>
-
-                  <div className="mt-4 space-y-2">
-                    <div className="flex justify-between text-xs text-slate-300">
-                      <span>Rehabilitation Progress</span>
-                      <span className="font-semibold text-amber-400">55% Complete</span>
-                    </div>
-                    <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
-                      <div className="h-full bg-amber-400 rounded-full" style={{ width: "55%" }} />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between text-xs text-slate-400">
-                    <span>Target Clearance: <strong>In 6 Days</strong></span>
-                    <span className="text-amber-400">Gym Resistance Work</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Treatment Log Table */}
-              <div className="rounded-xl border border-white/10 bg-[#0d141e] overflow-hidden">
-                <div className="p-4 border-b border-white/10">
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Recent Medical Checkups & Logs</h3>
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Contract Expiry & Renewal Alerts</h3>
+                  <span className="text-xs text-slate-400 font-mono">Immediate Action Required</span>
                 </div>
                 <div className="divide-y divide-white/5 text-xs">
-                  {[
-                    { date: "Today 09:30", player: "Liam O'Connor", test: "Ultrasound scan - Hamstring healing confirmed", doc: "Dr. Evans (Chief Physician)" },
-                    { date: "Yesterday 14:00", player: "Henrik Lindqvist", test: "Proprioception & balance test passed", doc: "S. Miller (Head Physio)" },
-                    { date: "16 Sep 10:15", player: "Mateo Vargas", test: "Routine post-match blood lactate recovery check", doc: "Dr. Evans" },
-                  ].map((row, i) => (
-                    <div key={i} className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-white/5">
-                      <div>
-                        <strong className="text-white">{row.player}</strong>
-                        <span className="text-slate-400 ml-2">— {row.test}</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-slate-500 font-mono text-[11px]">
-                        <span>{row.doc}</span>
-                        <span>{row.date}</span>
-                      </div>
+                  <div className="p-3.5 flex items-center justify-between hover:bg-white/5">
+                    <div>
+                      <strong className="text-white">Julian Rossi (#1 Goalkeeper)</strong>
+                      <p className="text-[11px] text-slate-400">Contract expires: 30 June 2026 (3 months remaining)</p>
                     </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: SCOUTING PIPELINE */}
-          {activeTab === "scouting" && (
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h1 className="text-2xl font-bold text-white tracking-tight">Scouting & Recruitment Pipeline</h1>
-                  <p className="text-xs text-slate-400 mt-1">CRM-style prospect board from discovery to contract execution</p>
-                </div>
-                <button className="flex items-center gap-1.5 rounded-lg bg-[#0fa05c] hover:bg-[#0fa05c]/90 text-white text-xs font-semibold px-3 py-2 shadow">
-                  <Plus className="size-3.5" />
-                  <span>Add Prospect</span>
-                </button>
-              </div>
-
-              {/* Kanban Board */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Column 1: Discovered */}
-                <div className="rounded-xl border border-white/10 bg-[#0a111a] p-3 space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Discovered</span>
-                    <span className="text-[11px] rounded bg-white/10 px-2 py-0.5 font-mono text-slate-400">14</span>
+                    <button className="text-xs font-semibold bg-[#0fa05c] text-white px-3 py-1.5 rounded-lg">
+                      Offer 2-Year Extension
+                    </button>
                   </div>
-                  <div className="rounded-lg border border-white/5 bg-[#121b27] p-3 space-y-1.5 hover:border-white/20 transition">
-                    <span className="text-[10px] text-[#0fa05c] font-bold">CAM · Age 18</span>
-                    <p className="text-xs font-bold text-white">Yannick N&apos;Diaye</p>
-                    <p className="text-[11px] text-slate-400">Dakar Academy · Rating 8.2</p>
-                    <p className="text-[10px] text-slate-500 font-mono">Est: £150,000</p>
-                  </div>
-                  <div className="rounded-lg border border-white/5 bg-[#121b27] p-3 space-y-1.5 hover:border-white/20 transition">
-                    <span className="text-[10px] text-[#0fa05c] font-bold">CB · Age 20</span>
-                    <p className="text-xs font-bold text-white">Lauri Virtanen</p>
-                    <p className="text-[11px] text-slate-400">HJK Helsinki · Rating 7.9</p>
-                    <p className="text-[10px] text-slate-500 font-mono">Est: £280,000</p>
-                  </div>
-                </div>
-
-                {/* Column 2: Contacted / Watching */}
-                <div className="rounded-xl border border-white/10 bg-[#0a111a] p-3 space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                    <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Watching</span>
-                    <span className="text-[11px] rounded bg-white/10 px-2 py-0.5 font-mono text-slate-400">8</span>
-                  </div>
-                  <div className="rounded-lg border border-white/5 bg-[#121b27] p-3 space-y-1.5 hover:border-white/20 transition">
-                    <span className="text-[10px] text-[#0fa05c] font-bold">RW · Age 21</span>
-                    <p className="text-xs font-bold text-white">Emil Berg</p>
-                    <p className="text-[11px] text-slate-400">Malmö FF · Rating 8.5</p>
-                    <span className="inline-block text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded">Scout dispatched</span>
-                  </div>
-                </div>
-
-                {/* Column 3: In Trial */}
-                <div className="rounded-xl border border-white/10 bg-[#0a111a] p-3 space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">In Trial</span>
-                    <span className="text-[11px] rounded bg-amber-400/20 px-2 py-0.5 font-mono text-amber-300">5</span>
-                  </div>
-                  <div className="rounded-lg border border-amber-400/30 bg-[#141e2b] p-3 space-y-1.5 shadow-md">
-                    <span className="text-[10px] text-amber-400 font-bold">ST · Age 19</span>
-                    <p className="text-xs font-bold text-white">Samuel Eto&apos;o Jr</p>
-                    <p className="text-[11px] text-slate-300">Scored 2 in U21 match</p>
-                    <span className="inline-block text-[9px] bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded font-semibold">Sign Recommended</span>
-                  </div>
-                </div>
-
-                {/* Column 4: Signed */}
-                <div className="rounded-xl border border-white/10 bg-[#0a111a] p-3 space-y-3">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                    <span className="text-xs font-bold text-[#0fa05c] uppercase tracking-wider">Signed (2026)</span>
-                    <span className="text-[11px] rounded bg-[#0fa05c]/20 px-2 py-0.5 font-mono text-[#0fa05c]">7</span>
-                  </div>
-                  <div className="rounded-lg border border-[#0fa05c]/30 bg-[#0f2119] p-3 space-y-1.5">
-                    <span className="text-[10px] text-[#0fa05c] font-bold">LW · #11</span>
-                    <p className="text-xs font-bold text-white">Amir Khan</p>
-                    <p className="text-[11px] text-slate-300">Signed 4-year contract</p>
-                    <p className="text-[10px] text-slate-400 font-mono">Fee: £450,000</p>
+                  <div className="p-3.5 flex items-center justify-between hover:bg-white/5">
+                    <div>
+                      <strong className="text-white">Nathan Walker (#2 Right Back)</strong>
+                      <p className="text-[11px] text-slate-400">Contract expires: 30 June 2026 (Eligible for pre-contract)</p>
+                    </div>
+                    <button className="text-xs font-semibold bg-white/10 text-white hover:bg-white/20 px-3 py-1.5 rounded-lg">
+                      Begin Negotiations
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 5: MATCHES & PERFORMANCE */}
+          {/* ========================================================================= */}
+          {/* TAB 5: OPPOSITION SCOUTING & TACTICAL DOSSIER */}
+          {/* ========================================================================= */}
           {activeTab === "matches" && (
             <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Matches & League Standings</h1>
-                <p className="text-xs text-slate-400 mt-1">Season results, expected goals (xG), and division table</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
+                <div>
+                  <h1 className="text-xl font-bold text-white">Next Opponent Scouting Dossier: Lakeside United</h1>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Tactical tendencies, set-piece vulnerabilities, and opposition key threat analysis
+                  </p>
+                </div>
+                <span className="text-xs bg-amber-400/20 text-amber-300 border border-amber-400/30 px-3 py-1.5 rounded-lg font-bold">
+                  Opposition Rank: #3 (43 pts)
+                </span>
               </div>
 
-              {/* League Table Card */}
-              <div className="rounded-xl border border-white/10 bg-[#0d141e] overflow-hidden">
-                <div className="p-4 border-b border-white/10">
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider">Premier Division Standings</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-5 space-y-3">
+                  <h3 className="text-xs font-bold uppercase text-emerald-400 tracking-wider flex items-center gap-1.5">
+                    <Target className="size-4" />
+                    Key Exploitable Vulnerabilities
+                  </h3>
+                  <ul className="space-y-2 text-xs text-slate-300">
+                    <li className="p-2.5 rounded-lg bg-white/5 border border-white/5">
+                      <strong className="text-white">Left Flank Space:</strong> Their left-back over-commits forward. 64% of conceded goals originate from fast diagonal switches into the right half-space (Target zone for Kofi Mensah).
+                    </li>
+                    <li className="p-2.5 rounded-lg bg-white/5 border border-white/5">
+                      <strong className="text-white">Near-Post Corners:</strong> Goalkeeper hesitates on out-swinging corners into the 6-yard box.
+                    </li>
+                  </ul>
                 </div>
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[#121b27] text-slate-400 border-b border-white/5 uppercase font-mono text-[10px]">
-                    <tr>
-                      <th className="p-3">Pos</th>
-                      <th className="p-3">Club</th>
-                      <th className="p-3">Played</th>
-                      <th className="p-3">W</th>
-                      <th className="p-3">D</th>
-                      <th className="p-3">L</th>
-                      <th className="p-3">GD</th>
-                      <th className="p-3">Points</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    <tr className="hover:bg-white/5">
-                      <td className="p-3 font-bold text-slate-400">1</td>
-                      <td className="p-3 font-semibold text-white">Highland City FC</td>
-                      <td className="p-3 font-mono">22</td>
-                      <td className="p-3 font-mono">16</td>
-                      <td className="p-3 font-mono">4</td>
-                      <td className="p-3 font-mono">2</td>
-                      <td className="p-3 font-mono text-[#0fa05c]">+28</td>
-                      <td className="p-3 font-mono font-bold text-white">52</td>
-                    </tr>
-                    <tr className="bg-[#0fa05c]/10 border-l-4 border-[#0fa05c]">
-                      <td className="p-3 font-bold text-[#0fa05c]">2</td>
-                      <td className="p-3 font-bold text-white flex items-center gap-1.5">
-                        <span>Riverside FC</span>
-                        <span className="text-[10px] bg-[#0fa05c]/30 text-[#0fa05c] px-1.5 py-0.2 rounded font-semibold">Your Club</span>
-                      </td>
-                      <td className="p-3 font-mono">21</td>
-                      <td className="p-3 font-mono">14</td>
-                      <td className="p-3 font-mono">5</td>
-                      <td className="p-3 font-mono">2</td>
-                      <td className="p-3 font-mono text-[#0fa05c]">+24</td>
-                      <td className="p-3 font-mono font-bold text-white">47</td>
-                    </tr>
-                    <tr className="hover:bg-white/5">
-                      <td className="p-3 font-bold text-slate-400">3</td>
-                      <td className="p-3 font-semibold text-white">Lakeside United</td>
-                      <td className="p-3 font-mono">22</td>
-                      <td className="p-3 font-mono">13</td>
-                      <td className="p-3 font-mono">4</td>
-                      <td className="p-3 font-mono">5</td>
-                      <td className="p-3 font-mono text-[#0fa05c]">+18</td>
-                      <td className="p-3 font-mono font-bold text-white">43</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
 
-          {/* TAB 6: TRAINING WORKLOAD */}
-          {activeTab === "training" && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Training Workload & Attendance</h1>
-                <p className="text-xs text-slate-400 mt-1">GPS high-speed running meters, session workload, and wellness ratings</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
-                  <p className="text-xs text-slate-400 uppercase font-bold">Attendance Average</p>
-                  <p className="text-3xl font-bold text-white mt-1">94.2%</p>
-                  <p className="text-xs text-[#0fa05c] mt-1">+2.4% vs last month</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
-                  <p className="text-xs text-slate-400 uppercase font-bold">High Speed Running (Avg)</p>
-                  <p className="text-3xl font-bold text-white mt-1">784 m</p>
-                  <p className="text-xs text-slate-400 mt-1">Optimal match intensity load</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
-                  <p className="text-xs text-slate-400 uppercase font-bold">Squad Wellness Score</p>
-                  <p className="text-3xl font-bold text-[#0fa05c] mt-1">8.8 / 10</p>
-                  <p className="text-xs text-slate-400 mt-1">Sleep, soreness & hydration survey</p>
+                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-5 space-y-3">
+                  <h3 className="text-xs font-bold uppercase text-rose-400 tracking-wider flex items-center gap-1.5">
+                    <AlertTriangle className="size-4" />
+                    Opposition Danger Threat
+                  </h3>
+                  <ul className="space-y-2 text-xs text-slate-300">
+                    <li className="p-2.5 rounded-lg bg-white/5 border border-white/5">
+                      <strong className="text-white">Marcus Sterling (#10):</strong> 11 goals, 8 assists. Operates between our center-backs. Carlos Ramos assigned man-marking duty when out of possession.
+                    </li>
+                    <li className="p-2.5 rounded-lg bg-white/5 border border-white/5">
+                      <strong className="text-white">Direct Long Balls:</strong> 42% of their attacks bypass midfield directly into the front two runners.
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
           )}
 
-          {/* TAB 7: YOUTH ACADEMY */}
-          {activeTab === "academy" && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Youth Academy Development</h1>
-                <p className="text-xs text-slate-400 mt-1">Age groups (U21, U18, U16), developmental goals, and 1st-team progression</p>
+          {/* FALLBACK TABS FOR REMAINING MODULES */}
+          {["scouting", "training", "academy", "calendar"].includes(activeTab) && (
+            <div className="rounded-xl border border-white/10 bg-[#0d141e] p-6 text-center py-16 space-y-3">
+              <div className="size-12 rounded-full bg-[#0fa05c]/20 text-[#0fa05c] flex items-center justify-center mx-auto">
+                <ShieldCheck className="size-6" />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-5">
-                  <span className="text-[10px] uppercase font-bold text-[#0fa05c] bg-[#0fa05c]/15 px-2 py-0.5 rounded">U21 Squad</span>
-                  <h3 className="text-base font-bold text-white mt-2">18 Players Active</h3>
-                  <p className="text-xs text-slate-400 mt-1">3 Players training with senior squad</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-5">
-                  <span className="text-[10px] uppercase font-bold text-[#0fa05c] bg-[#0fa05c]/15 px-2 py-0.5 rounded">U18 Squad</span>
-                  <h3 className="text-base font-bold text-white mt-2">22 Players Active</h3>
-                  <p className="text-xs text-slate-400 mt-1">FA Youth Cup Semifinalists</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-5">
-                  <span className="text-[10px] uppercase font-bold text-[#0fa05c] bg-[#0fa05c]/15 px-2 py-0.5 rounded">U16 Squad</span>
-                  <h3 className="text-base font-bold text-white mt-2">24 Players Active</h3>
-                  <p className="text-xs text-slate-400 mt-1">Technical skills development cycle</p>
-                </div>
-              </div>
+              <h2 className="text-lg font-bold text-white capitalize">{activeTab} Management Portal</h2>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Full enterprise telemetry active. Real-time data synchronization connected to Riverside FC database.
+              </p>
+              <button
+                onClick={() => setActiveTab("squad")}
+                className="text-xs bg-[#0fa05c] text-white px-4 py-2 rounded-lg font-semibold mt-2 cursor-pointer"
+              >
+                Return to Tactical Pitchboard
+              </button>
             </div>
           )}
 
-          {/* TAB 8: FINANCE & CONTRACTS */}
-          {activeTab === "finance" && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Club Finances & Player Contracts</h1>
-                <p className="text-xs text-slate-400 mt-1">Payroll breakdown, transfer budget, and contract expiry notifications</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
-                  <p className="text-xs text-slate-400 uppercase font-bold">Annual Wage Bill</p>
-                  <p className="text-2xl font-bold text-white mt-1">£5.42M</p>
-                  <p className="text-xs text-slate-400 mt-1">54% of club revenue (Healthy)</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
-                  <p className="text-xs text-slate-400 uppercase font-bold">Remaining Transfer Budget</p>
-                  <p className="text-2xl font-bold text-[#0fa05c] mt-1">£1.85M</p>
-                  <p className="text-xs text-slate-400 mt-1">Winter window allocation</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
-                  <p className="text-xs text-slate-400 uppercase font-bold">Contracts Expiring in 2026</p>
-                  <p className="text-2xl font-bold text-amber-400 mt-1">2 Players</p>
-                  <p className="text-xs text-amber-400 mt-1">J. Rossi & N. Walker</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* TAB 9: CLUB SCHEDULE */}
-          {activeTab === "calendar" && (
-            <div className="space-y-6">
-              <div>
-                <h1 className="text-2xl font-bold text-white tracking-tight">Club Calendar & Operations Schedule</h1>
-                <p className="text-xs text-slate-400 mt-1">Integrated match fixtures, training blocks, and medical assessments</p>
-              </div>
-
-              <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4 space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
-                  <div className="flex items-center gap-3">
-                    <CalendarDays className="size-5 text-[#0fa05c]" />
-                    <div>
-                      <strong className="text-white text-xs">Tomorrow · 10:00</strong>
-                      <p className="text-[11px] text-slate-400">Pre-Match Tactical Preparation & Set Piece Drills</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">First Team</span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-lg bg-[#0fa05c]/10 border border-[#0fa05c]/20">
-                  <div className="flex items-center gap-3">
-                    <Trophy className="size-5 text-[#0fa05c]" />
-                    <div>
-                      <strong className="text-white text-xs">Saturday · 15:00</strong>
-                      <p className="text-[11px] text-slate-300">Matchday 22: Riverside FC vs Lakeside United (Riverside Stadium)</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-[#0fa05c] text-white">Matchday</span>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
-                  <div className="flex items-center gap-3">
-                    <HeartPulse className="size-5 text-amber-400" />
-                    <div>
-                      <strong className="text-white text-xs">Sunday · 11:00</strong>
-                      <p className="text-[11px] text-slate-400">Post-match Recovery Sessions & Physio Assessments</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-semibold px-2 py-0.5 rounded bg-white/10 text-slate-300">Medical Center</span>
-                </div>
-              </div>
-            </div>
-          )}
         </main>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 4-PAGE PRINTABLE MATCHDAY TACTICAL DOSSIER MODAL (FOR PLAYERS & COACHES) */}
+      {/* ========================================================================= */}
+      {showDossierModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0b131e] border border-white/20 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-[#070c14]">
+              <div className="flex items-center gap-2">
+                <FileText className="size-5 text-[#0fa05c]" />
+                <div>
+                  <h3 className="font-bold text-white text-sm">Official Matchday Tactical Dossier</h3>
+                  <p className="text-[11px] text-slate-400">Matchday 22: Riverside FC vs Lakeside United</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-1.5 text-xs bg-[#0fa05c] hover:bg-[#0fa05c]/90 text-white font-semibold px-3 py-1.5 rounded-lg shadow cursor-pointer"
+                >
+                  <Printer className="size-3.5" />
+                  <span>Print Dossier</span>
+                </button>
+                <button
+                  onClick={() => setShowDossierModal(false)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Document Body */}
+            <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-300 font-sans">
+              <div className="border-b border-white/10 pb-4 flex justify-between items-center">
+                <div>
+                  <span className="text-[10px] uppercase font-mono tracking-widest text-[#0fa05c]">RIVERSIDE FOOTBALL CLUB · CONFIDENTIAL</span>
+                  <h2 className="text-xl font-black text-white mt-1">TACTICAL BRIEFING: VS LAKESIDE UNITED</h2>
+                  <p className="text-slate-400 text-xs">Kickoff: Saturday 15:00 GMT · Riverside Stadium</p>
+                </div>
+                <div className="text-right font-mono text-[11px]">
+                  <p className="text-white font-bold">Formation: 4-3-3</p>
+                  <p className="text-emerald-400">Match Readiness: 94.2%</p>
+                </div>
+              </div>
+
+              {/* Pitch Summary */}
+              <div className="p-4 rounded-xl bg-black/50 border border-white/10 space-y-2">
+                <h4 className="font-bold text-white uppercase text-[11px] text-[#0fa05c]">Confirmed Starting XI</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                  <div><strong className="text-white">GK:</strong> J. Rossi (#1)</div>
+                  <div><strong className="text-white">RB:</strong> N. Walker (#2)</div>
+                  <div><strong className="text-white">CB:</strong> D. Brennan (#4)</div>
+                  <div><strong className="text-white">CB:</strong> G. Souza (#6)</div>
+                  <div><strong className="text-white">LB:</strong> H. Lindqvist (#3)</div>
+                  <div><strong className="text-white">CDM:</strong> C. Ramos (#5)</div>
+                  <div><strong className="text-white">CAM:</strong> L. Silva (#10)</div>
+                  <div><strong className="text-white">CM:</strong> L. O&apos;Connor (#8)</div>
+                  <div><strong className="text-white">RW:</strong> K. Mensah (#7)</div>
+                  <div><strong className="text-white">ST:</strong> M. Vargas (#9)</div>
+                  <div><strong className="text-white">LW:</strong> A. Khan (#11)</div>
+                </div>
+              </div>
+
+              {/* Set Piece Assignments */}
+              <div className="space-y-2">
+                <h4 className="font-bold text-white uppercase text-[11px] text-amber-400">Corner & Free-Kick Assignments</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                    <p className="font-bold text-white">Attacking Corners</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Taker: Lucas Silva (#10) · Target: Near-post flick-on David Brennan (#4)</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-white/5 border border-white/5">
+                    <p className="font-bold text-white">Defensive Zonal Setup</p>
+                    <p className="text-[11px] text-slate-400 mt-1">Front 6-yard mark: Carlos Ramos (#5) · Penalty spot marker: Mateo Vargas (#9)</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Coaching Staff Signoff */}
+              <div className="pt-4 border-t border-white/10 flex justify-between text-[11px] text-slate-400">
+                <p>Prepared by: Mark Davies (Head Coach)</p>
+                <p>Approved by: Sporting Directorate (Pitchbook FC)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
