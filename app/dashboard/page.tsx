@@ -49,6 +49,10 @@ import {
   Download,
   Tv,
   Table as TableIcon,
+  Bot,
+  Send,
+  MessageSquare,
+  Calculator,
 } from "lucide-react";
 
 type Formation = "4-3-3" | "4-2-3-1" | "3-5-2" | "4-4-2" | "custom";
@@ -319,6 +323,105 @@ export default function DashboardPage() {
 
   const totalMarketValue = "£88.5M";
   const matchFitCount = starters.filter((p) => p.status === "AVAILABLE").length;
+
+  // ROI & Tool Consolidation Modal State
+  const [showRoiModal, setShowRoiModal] = useState(false);
+  const [annualWagePayroll, setAnnualWagePayroll] = useState<number>(8.5);
+
+  // Pitch AI Copilot State
+  const [showAiCopilot, setShowAiCopilot] = useState(false);
+  const [aiCustomInput, setAiCustomInput] = useState("");
+  const [aiIsTyping, setAiIsTyping] = useState(false);
+  const [aiMessages, setAiMessages] = useState<
+    Array<{
+      id: string;
+      sender: "system" | "user" | "ai";
+      text: string;
+      actionLabel?: string;
+      actionTrigger?: string;
+      time: string;
+    }>
+  >([
+    {
+      id: "m-0",
+      sender: "ai",
+      text: "Pitch AI Copilot active. Connected to Riverside FC Tactical Engine, Catapult ACWR sensors, and Lakeside United match footage. Select a tactical query below or type any matchday instruction.",
+      time: "Live Telemetry",
+    },
+  ]);
+
+  // Client Presentation Club Switcher
+  const [selectedClub, setSelectedClub] = useState<"Riverside FC" | "Wrexham AFC" | "Plymouth Argyle">("Riverside FC");
+
+  const executeAiAction = (actionType: string) => {
+    if (actionType === "view-lakeside") {
+      setActiveTab("matches");
+    } else if (actionType === "fatigue-70") {
+      setActiveTab("squad");
+      setMatchMinute(70);
+    } else if (actionType === "simulate-transfer") {
+      setActiveTab("finance");
+      setSimulatedTransferSpend(5);
+    } else if (actionType === "view-medical") {
+      setActiveTab("medical");
+    } else if (actionType === "zonal-corner") {
+      setActiveTab("squad");
+      setPitchMode("defend-corner");
+    }
+  };
+
+  const handleAiQuery = (queryText: string) => {
+    const userMsgId = `user-${Date.now()}`;
+    const newMsgs = [
+      ...aiMessages,
+      { id: userMsgId, sender: "user" as const, text: queryText, time: "Just now" },
+    ];
+    setAiMessages(newMsgs);
+    setAiIsTyping(true);
+
+    setTimeout(() => {
+      let replyText = "";
+      let actionLabel: string | undefined;
+      let actionTrigger: string | undefined;
+
+      if (queryText.includes("Lakeside") || queryText.includes("Weakness") || queryText.includes("2nd-Half")) {
+        replyText =
+          "Lakeside CB #5 Liam Vance (Rating 7.2) loses 58% of aerial duels after min 65 due to recovery deceleration. Left back Daniel Murphy commits forward leaving a 32-meter channel behind him. Recommend attacking near-post with Mateo Vargas and overloading with Kofi Mensah.";
+        actionLabel = "Open Lakeside Opposition Dossier";
+        actionTrigger = "view-lakeside";
+      } else if (queryText.includes("Fatigue") || queryText.includes("Substitution")) {
+        replyText =
+          "At 70', Left-Winger Kofi Mensah (ACWR 1.38, Stamina 64%) enters high-risk deceleration fatigue. Recommend substituting with fresh winger Darnell Sterling (34.1 km/h top speed) to exploit Lakeside right-back Jordan Smith's 1v1 vulnerability.";
+        actionLabel = "Simulate 70' Match Fatigue on Pitch";
+        actionTrigger = "fatigue-70";
+      } else if (queryText.includes("PSR") || queryText.includes("Forward") || queryText.includes("Transfer")) {
+        replyText =
+          "Adding a £5.0M forward target amortised across a 4-year contract adds £1.25M/year in P&L amortisation. Based on Riverside FC's current +£14.2M PSR margin, the club remains safely compliant with a revised buffer of +£12.95M (Zero risk of EFL point deduction penalties).";
+        actionLabel = "Simulate £5M Transfer in Financials";
+        actionTrigger = "simulate-transfer";
+      } else if (queryText.includes("ACWR") || queryText.includes("Injury") || queryText.includes("Sprint")) {
+        replyText =
+          "ACWR Alert: Harrison Cole recorded 10.45 km distance in MD-3 with an acute load spike to 1.48 AU. Recommended: reduce high-speed running meters on MD-2 by 20% to prevent hamstring strain ahead of Saturday's match.";
+        actionLabel = "Inspect Catapult GPS Telemetry";
+        actionTrigger = "view-medical";
+      } else {
+        replyText = `Tactical Directive Generated: "${queryText}". The first-team squad is performing at 94.2% readiness with +£14.2M PSR headroom. All tactical directives have been aligned with the Head Coach's matchday plan.`;
+      }
+
+      setAiMessages((prev) => [
+        ...prev,
+        {
+          id: `ai-${Date.now()}`,
+          sender: "ai" as const,
+          text: replyText,
+          actionLabel,
+          actionTrigger,
+          time: "Just now",
+        },
+      ]);
+      setAiIsTyping(false);
+    }, 400);
+  };
 
   const handleSwap = (playerA: Player, playerB: Player) => {
     const isAStarter = starters.some((p) => p.id === playerA.id);
@@ -704,10 +807,36 @@ export default function DashboardPage() {
             >
               PRO ENTERPRISE <ArrowUpRight className="size-3 ml-0.5" />
             </Link>
+
+            {/* CLUB DEMO SWITCHER */}
+            <div className="hidden lg:flex items-center gap-1.5 bg-[#121d2b] border border-white/10 px-2 py-1 rounded-lg text-xs">
+              <span className="size-2 rounded-full bg-[#0fa05c] animate-pulse" />
+              <select
+                value={selectedClub}
+                onChange={(e) => setSelectedClub(e.target.value as any)}
+                className="bg-transparent font-bold text-white text-[11px] outline-none cursor-pointer"
+                title="Switch Prospect Presentation Club"
+              >
+                <option value="Riverside FC" className="bg-[#121d2b]">Riverside FC (Championship #2)</option>
+                <option value="Wrexham AFC" className="bg-[#121d2b]">Wrexham AFC (League One #3)</option>
+                <option value="Plymouth Argyle" className="bg-[#121d2b]">Plymouth Argyle (Championship #14)</option>
+              </select>
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => setShowRoiModal(true)}
+            className="flex items-center gap-1.5 text-xs font-bold bg-[#102419] hover:bg-[#143021] text-emerald-400 border border-emerald-500/40 px-3 py-1.5 rounded-lg shadow-sm transition cursor-pointer"
+            title="Open Executive Club ROI & £210k Savings Model"
+          >
+            <Calculator className="size-3.5 text-emerald-400" />
+            <span className="hidden xl:inline">Club ROI & Savings</span>
+            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono px-1 rounded">+£210k</span>
+          </button>
+
           <div className="hidden xl:flex items-center gap-2 bg-[#121d2b] border border-white/10 px-2.5 py-1 rounded-lg text-xs">
             <Briefcase className="size-3.5 text-[#0fa05c]" />
             <span className="text-slate-400">Active Persona:</span>
@@ -2352,6 +2481,346 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* EXECUTIVE CLUB ROI & TOOL CONSOLIDATION CALCULATOR MODAL */}
+      {/* ========================================================================= */}
+      {showRoiModal && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0b131e] border border-emerald-500/30 rounded-2xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="p-4 border-b border-white/10 flex items-center justify-between bg-[#070c14]">
+              <div className="flex items-center gap-2.5">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  <Calculator className="size-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                    Executive Club ROI & Cost Consolidation Model
+                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                      £50,000 SaaS Justification
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Board & Ownership Financial Deck for {selectedClub}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="flex items-center gap-1.5 text-xs bg-white/10 hover:bg-white/20 text-white font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer"
+                >
+                  <Printer className="size-3.5" />
+                  <span className="hidden sm:inline">Print Deck</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowRoiModal(false)}
+                  className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  <X className="size-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 overflow-y-auto space-y-6 text-xs text-slate-300">
+              {/* Top Highlights Summary Banner */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-[#08121d] border border-white/10 rounded-2xl p-4">
+                <div className="text-center p-2">
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Legacy Tooling Cost</p>
+                  <p className="text-2xl font-black text-rose-400 mt-0.5">£80,000</p>
+                  <p className="text-[10px] text-slate-400">4 Fragmented Software Seats</p>
+                </div>
+                <div className="text-center p-2">
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Pitchbook FC Annual Fee</p>
+                  <p className="text-2xl font-black text-white mt-0.5">£50,000</p>
+                  <p className="text-[10px] text-emerald-400">All 9 Departments Included</p>
+                </div>
+                <div className="text-center p-2">
+                  <p className="text-[10px] uppercase font-bold text-slate-400">ACWR Injury Savings</p>
+                  <p className="text-2xl font-black text-emerald-400 mt-0.5">
+                    +£{Math.round(((annualWagePayroll * 1000000) / 25 / 52) * 8 * 1.2).toLocaleString()}
+                  </p>
+                  <p className="text-[10px] text-slate-400">1.2 Muscle Tears Prevented</p>
+                </div>
+                <div className="text-center p-2">
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Net Season Gain (ROI)</p>
+                  <p className="text-2xl font-black text-[#0fa05c] mt-0.5">
+                    +£{(30000 + Math.round(((annualWagePayroll * 1000000) / 25 / 52) * 8 * 1.2)).toLocaleString()}
+                  </p>
+                  <p className="text-[10px] text-emerald-400 font-bold">
+                    {((30000 + ((annualWagePayroll * 1000000) / 25 / 52) * 8 * 1.2) / 50000).toFixed(1)}x Projected Return
+                  </p>
+                </div>
+              </div>
+
+              {/* PILLAR 1: DIRECT SOFTWARE CONSOLIDATION */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d1520] p-5 space-y-3">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-emerald-400" />
+                    Pillar 1: Four Fragmented Subscriptions Consolidated Into One
+                  </h4>
+                  <span className="text-xs font-mono text-emerald-400 font-bold">Immediate £30,000 Cash Reduction</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="bg-black/30 border border-white/5 rounded-xl p-3">
+                    <p className="text-slate-400 font-medium">1. Wyscout Video & Scouting</p>
+                    <p className="text-base font-bold text-slate-200 mt-1">£18,000 / yr</p>
+                    <p className="text-[10px] text-emerald-400 mt-0.5">Replaced by Pipeline Hub</p>
+                  </div>
+                  <div className="bg-black/30 border border-white/5 rounded-xl p-3">
+                    <p className="text-slate-400 font-medium">2. Hudl Sportscode Pro</p>
+                    <p className="text-base font-bold text-slate-200 mt-1">£22,000 / yr</p>
+                    <p className="text-[10px] text-emerald-400 mt-0.5">Replaced by Tactical Replay</p>
+                  </div>
+                  <div className="bg-black/30 border border-white/5 rounded-xl p-3">
+                    <p className="text-slate-400 font-medium">3. Catapult Athlete AMS</p>
+                    <p className="text-base font-bold text-slate-200 mt-1">£25,000 / yr</p>
+                    <p className="text-[10px] text-emerald-400 mt-0.5">Replaced by ACWR Engine</p>
+                  </div>
+                  <div className="bg-black/30 border border-white/5 rounded-xl p-3">
+                    <p className="text-slate-400 font-medium">4. TransferRoom Network</p>
+                    <p className="text-base font-bold text-slate-200 mt-1">£15,000 / yr</p>
+                    <p className="text-[10px] text-emerald-400 mt-0.5">Replaced by Shadow Squad</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* PILLAR 2: BIOMETRIC INJURY MITIGATION WITH INTERACTIVE SLIDER */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d1520] p-5 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-2">
+                  <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-emerald-400" />
+                    Pillar 2: Acute-to-Chronic Workload (ACWR) Soft-Tissue Injury Prevention
+                  </h4>
+                  <span className="text-xs font-mono text-emerald-400 font-bold">1.2 Fewer Major Hamstring Tears</span>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-slate-300">
+                      Simulate {selectedClub} First-Team Annual Wage Payroll:
+                    </span>
+                    <strong className="text-base font-bold font-mono text-white">
+                      £{annualWagePayroll.toFixed(1)}M / year
+                    </strong>
+                  </div>
+                  <input
+                    type="range"
+                    min="3.0"
+                    max="25.0"
+                    step="0.5"
+                    value={annualWagePayroll}
+                    onChange={(e) => setAnnualWagePayroll(parseFloat(e.target.value))}
+                    className="w-full accent-[#0fa05c] h-2 bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                    <span>£3.0M (EFL League Two)</span>
+                    <span>£8.5M (EFL League One / Mid-Champ)</span>
+                    <span>£25.0M (Championship Contender)</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+                  <div className="bg-black/30 border border-white/5 rounded-xl p-3">
+                    <p className="text-slate-400 text-[11px]">Average Starter Weekly Wage</p>
+                    <p className="text-base font-bold text-white mt-1">
+                      £{Math.round((annualWagePayroll * 1000000) / 25 / 52).toLocaleString()} / wk
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Based on 25-man registered roster</p>
+                  </div>
+                  <div className="bg-black/30 border border-white/5 rounded-xl p-3">
+                    <p className="text-slate-400 text-[11px]">Cost of 1 Major Tear (8 Wks Out)</p>
+                    <p className="text-base font-bold text-rose-400 mt-1">
+                      £{Math.round(((annualWagePayroll * 1000000) / 25 / 52) * 8).toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Medical, scan & unplayable wages</p>
+                  </div>
+                  <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-3">
+                    <p className="text-emerald-300 text-[11px] font-semibold">Protected Wages via Pitchbook</p>
+                    <p className="text-base font-black text-emerald-400 mt-1">
+                      +£{Math.round(((annualWagePayroll * 1000000) / 25 / 52) * 8 * 1.2).toLocaleString()}
+                    </p>
+                    <p className="text-[10px] text-emerald-300 mt-0.5">With ACWR 1.5 spike warnings</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* PILLAR 3: PSR REGULATORY PENALTY AVOIDANCE */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d1520] p-5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold text-white text-sm flex items-center gap-2">
+                    <span className="size-2 rounded-full bg-emerald-400" />
+                    Pillar 3: Premier League & EFL PSR Point Deduction Insurance
+                  </h4>
+                  <span className="text-xs font-mono text-emerald-400 font-bold">100% Audit Readiness</span>
+                </div>
+                <p className="text-slate-300 text-xs leading-relaxed">
+                  Avoid the catastrophic 6-to-10 point penalties (which cost clubs over £10,000,000 in lost promotion revenue and relegation peril). Pitchbook FC continuously stress-tests 3-year rolling amortisation, youth write-offs, and infrastructure allowances with automated 1-click audit reports.
+                </p>
+              </div>
+
+              {/* Final Summary CTA */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-white/10">
+                <div>
+                  <p className="text-xs text-slate-400">Total Quantified Annual Club Value:</p>
+                  <p className="text-lg font-black text-[#0fa05c]">
+                    £{(30000 + Math.round(((annualWagePayroll * 1000000) / 25 / 52) * 8 * 1.2)).toLocaleString()} / Season
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowRoiModal(false);
+                      setActiveTab("finance");
+                    }}
+                    className="text-xs bg-[#0fa05c] hover:bg-[#0fa05c]/90 text-white font-bold px-4 py-2 rounded-xl transition cursor-pointer"
+                  >
+                    Open Live PSR Simulator
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* PITCH AI TACTICAL COPILOT (FLOATING ASSISTANT) */}
+      {/* ========================================================================= */}
+      {!showAiCopilot && (
+        <button
+          type="button"
+          onClick={() => setShowAiCopilot(true)}
+          className="fixed bottom-5 right-5 z-40 flex items-center gap-2.5 bg-[#091522]/95 hover:bg-[#0e2135] border border-[#0fa05c]/50 text-white px-4 py-2.5 rounded-full shadow-2xl backdrop-blur-md transition hover:scale-105 cursor-pointer group"
+          title="Open Pitch AI Tactical Copilot"
+        >
+          <div className="relative flex size-6 items-center justify-center rounded-full bg-[#0fa05c] text-white shadow-md shadow-[#0fa05c]/40">
+            <Zap className="size-3.5" />
+            <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-emerald-300 animate-ping" />
+          </div>
+          <div className="text-left font-sans">
+            <p className="text-xs font-bold text-white flex items-center gap-1.5">
+              Pitch AI Copilot
+              <span className="text-[9px] bg-[#0fa05c]/20 text-[#0fa05c] px-1 rounded font-mono font-bold">2026 AI</span>
+            </p>
+            <p className="text-[10px] text-slate-400">Click for Tactical Intel</p>
+          </div>
+        </button>
+      )}
+
+      {showAiCopilot && (
+        <div className="fixed bottom-5 right-4 sm:right-6 z-50 w-full max-w-[390px] sm:max-w-[420px] bg-[#08101a]/98 border border-[#0fa05c]/40 rounded-3xl shadow-2xl backdrop-blur-xl flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-200">
+          {/* Header */}
+          <div className="p-3.5 border-b border-white/10 flex items-center justify-between bg-[#060c14]/90">
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-7 items-center justify-center rounded-lg bg-[#0fa05c] text-white shadow">
+                <Bot className="size-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                  Pitch AI Tactical Copilot
+                  <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                </h4>
+                <p className="text-[10px] text-slate-400 font-mono">Connected: {selectedClub} Telemetry</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAiCopilot(false)}
+              className="p-1 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+
+          {/* Quick Query Selector Pills */}
+          <div className="p-2.5 bg-black/40 border-b border-white/5 flex gap-1.5 overflow-x-auto text-[10px] font-semibold no-scrollbar">
+            {[
+              "Lakeside 2nd-Half Weakness",
+              "70' Fatigue Substitution",
+              "£5M Forward PSR Headroom",
+              "ACWR Sprint Load Alert",
+            ].map((prompt, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleAiQuery(prompt)}
+                className="shrink-0 bg-white/5 hover:bg-emerald-500/20 text-slate-300 hover:text-emerald-400 border border-white/10 hover:border-emerald-500/40 px-2.5 py-1 rounded-full transition cursor-pointer"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+
+          {/* Chat Messages Stream */}
+          <div className="p-3.5 space-y-3 overflow-y-auto max-h-[300px] text-xs">
+            {aiMessages.map((m) => (
+              <div
+                key={m.id}
+                className={`flex flex-col ${m.sender === "user" ? "items-end" : "items-start"}`}
+              >
+                <div
+                  className={`max-w-[88%] p-3 rounded-2xl ${
+                    m.sender === "user"
+                      ? "bg-[#0fa05c] text-white rounded-br-none shadow-md"
+                      : "bg-[#0f1a26] text-slate-200 border border-white/10 rounded-bl-none shadow-lg"
+                  }`}
+                >
+                  <p className="text-[11px] leading-relaxed">{m.text}</p>
+                  {m.actionLabel && m.actionTrigger && (
+                    <button
+                      type="button"
+                      onClick={() => executeAiAction(m.actionTrigger!)}
+                      className="mt-2.5 w-full flex items-center justify-center gap-1.5 bg-[#0fa05c]/20 hover:bg-[#0fa05c] text-[#0fa05c] hover:text-white border border-[#0fa05c]/40 hover:border-transparent text-[10px] font-bold py-1.5 px-2 rounded-lg transition cursor-pointer"
+                    >
+                      <Sparkles className="size-3" />
+                      <span>{m.actionLabel}</span>
+                    </button>
+                  )}
+                </div>
+                <span className="text-[9px] text-slate-500 mt-1 px-1">{m.time}</span>
+              </div>
+            ))}
+            {aiIsTyping && (
+              <div className="flex items-center gap-1.5 text-slate-400 text-[10px] font-mono p-1">
+                <span className="size-1.5 rounded-full bg-emerald-400 animate-bounce" />
+                <span className="size-1.5 rounded-full bg-emerald-400 animate-bounce [animation-delay:0.2s]" />
+                <span className="size-1.5 rounded-full bg-emerald-400 animate-bounce [animation-delay:0.4s]" />
+                <span>Generating tactical briefing...</span>
+              </div>
+            )}
+          </div>
+
+          {/* User Input Bar */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!aiCustomInput.trim()) return;
+              handleAiQuery(aiCustomInput);
+              setAiCustomInput("");
+            }}
+            className="p-2.5 border-t border-white/10 bg-[#060c14]/90 flex items-center gap-2"
+          >
+            <input
+              type="text"
+              value={aiCustomInput}
+              onChange={(e) => setAiCustomInput(e.target.value)}
+              placeholder="Ask tactical AI directive..."
+              className="flex-1 bg-[#101924] border border-white/10 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 outline-none focus:border-[#0fa05c] transition"
+            />
+            <button
+              type="submit"
+              disabled={!aiCustomInput.trim()}
+              className="p-2 rounded-xl bg-[#0fa05c] hover:bg-[#0fa05c]/90 disabled:opacity-40 text-white transition cursor-pointer"
+            >
+              <Send className="size-3.5" />
+            </button>
+          </form>
         </div>
       )}
     </div>
