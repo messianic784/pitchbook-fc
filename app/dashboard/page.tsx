@@ -299,6 +299,7 @@ export default function DashboardPage() {
   const [customMid, setCustomMid] = useState<number>(4);
   const [customFwd, setCustomFwd] = useState<number>(3);
   const [customTacticPreset, setCustomTacticPreset] = useState<string>("3-4-3 Fluid Press");
+  const [selectedTrainingDay, setSelectedTrainingDay] = useState<string>("MD-3");
 
   // Financial PSR Simulator Interactive State
   const [simulatedTransferSpend, setSimulatedTransferSpend] = useState(0);
@@ -682,17 +683,28 @@ export default function DashboardPage() {
             {sidebarOpen ? <X className="size-5 text-white" /> : <Menu className="size-5 text-white" />}
           </button>
 
-          <Link href="/welcome" className="flex items-center gap-2.5">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-[#0fa05c] text-white shadow-md shadow-[#0fa05c]/30">
-              <ShieldCheck className="size-4.5" />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base tracking-tight text-white">PITCHBOOK FC</span>
-              <span className="hidden sm:inline-block text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#0fa05c]/20 text-[#0fa05c] border border-[#0fa05c]/40">
-                PRO ENTERPRISE
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setActiveTab("squad")}
+              className="flex items-center gap-2.5 text-left cursor-pointer group"
+              title="Pitchbook FC · Click to return to Tactical Pitchboard"
+            >
+              <div className="flex size-8 items-center justify-center rounded-lg bg-[#0fa05c] text-white shadow-md shadow-[#0fa05c]/30 group-hover:scale-105 transition">
+                <ShieldCheck className="size-4.5" />
+              </div>
+              <span className="font-extrabold text-base tracking-tight text-white group-hover:text-emerald-400 transition">
+                PITCHBOOK FC
               </span>
-            </div>
-          </Link>
+            </button>
+            <Link
+              href="/welcome"
+              title="Explore Pro Enterprise Tier Architecture & Documentation"
+              className="hidden sm:inline-flex items-center gap-1 text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#0fa05c]/20 text-[#0fa05c] border border-[#0fa05c]/40 hover:bg-[#0fa05c]/30 hover:border-[#0fa05c]/60 transition cursor-pointer"
+            >
+              PRO ENTERPRISE <ArrowUpRight className="size-3 ml-0.5" />
+            </Link>
+          </div>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -1636,11 +1648,53 @@ export default function DashboardPage() {
                   <h1 className="text-xl font-bold text-white">Catapult / STATSports GPS Training Telemetry</h1>
                   <p className="text-xs text-slate-400 mt-0.5">Weekly high-speed running meters, sprint volume, and neuromuscular readiness</p>
                 </div>
-                <span className="text-xs bg-[#0fa05c]/15 text-[#0fa05c] border border-[#0fa05c]/30 px-3 py-1.5 rounded-lg font-bold">
-                  Squad Readiness: 94.2%
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs bg-[#0fa05c]/15 text-[#0fa05c] border border-[#0fa05c]/30 px-3 py-1.5 rounded-lg font-bold">
+                    Squad Readiness: 94.2%
+                  </span>
+                </div>
               </div>
 
+              {/* MICROCYCLE DAY SELECTOR */}
+              <div className="bg-[#0d141e] border border-white/10 rounded-2xl p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                    <Activity className="size-4 text-[#0fa05c]" />
+                    Microcycle Periodisation Schedule (Matchday - 22 Lakeside United)
+                  </span>
+                  <span className="text-[11px] font-mono text-emerald-400">Target Acute Load: 4,850 AU</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {[
+                    { day: "MD-4", label: "Strength & Power", focus: "Max eccentric load, neural gym priming & 3v3 cages", load: "980 AU" },
+                    { day: "MD-3", label: "Tactical Speed", focus: "11v11 full pitch tactical shape & transition sprints", load: "1,420 AU" },
+                    { day: "MD-2", label: "Reaction & SSG", focus: "Small-sided games, counter-press triggers & reaction", load: "850 AU" },
+                    { day: "MD-1", label: "Activation & Primer", focus: "15-min speed ladders, set-piece walkthrough & wellness check", load: "420 AU" },
+                  ].map((item) => (
+                    <button
+                      key={item.day}
+                      type="button"
+                      onClick={() => setSelectedTrainingDay(item.day)}
+                      className={`p-3 rounded-xl border text-left transition cursor-pointer ${
+                        selectedTrainingDay === item.day
+                          ? "bg-[#0fa05c]/20 border-[#0fa05c] shadow-md shadow-[#0fa05c]/20"
+                          : "bg-[#111924] border-white/10 hover:border-white/20"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className={`text-xs font-mono font-extrabold ${selectedTrainingDay === item.day ? "text-[#0fa05c]" : "text-white"}`}>
+                          {item.day}
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400">{item.load}</span>
+                      </div>
+                      <p className="text-xs font-bold text-white mt-1">{item.label}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2">{item.focus}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* SQUAD TELEMETRY METRIC CARDS */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="rounded-xl border border-white/10 bg-[#0d141e] p-4">
                   <p className="text-xs text-slate-400 uppercase font-bold">High Speed Running (Squad Avg)</p>
@@ -1658,6 +1712,54 @@ export default function DashboardPage() {
                   <p className="text-xs text-slate-400 mt-1">Sleep quality, soreness, & hydration index</p>
                 </div>
               </div>
+
+              {/* LIVE STATSPORTS GPS SQUAD LOAD TABLE */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d141e] overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="size-4 text-[#0fa05c]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">First Team Daily GPS Output ({selectedTrainingDay})</h3>
+                  </div>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-[#0fa05c]/10 border border-[#0fa05c]/30 px-2 py-0.5 rounded">
+                    Catapult Vector S7 Live
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-white/5 text-[10px] uppercase font-bold text-slate-400">
+                      <tr>
+                        <th className="p-3">Player</th>
+                        <th className="p-3">Pos</th>
+                        <th className="p-3">Total Dist (km)</th>
+                        <th className="p-3">HSR (&gt;19.8 km/h)</th>
+                        <th className="p-3">Max Velocity</th>
+                        <th className="p-3">Dynamic Stress</th>
+                        <th className="p-3">ACWR Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 font-mono">
+                      {[
+                        { name: "Kofi Mensah", pos: "LW", dist: "8.42 km", hsr: "920 m", maxVel: "34.8 km/h", stress: "412 AU", status: "OPTIMAL", color: "text-emerald-400" },
+                        { name: "Mateo Vargas", pos: "ST", dist: "7.88 km", hsr: "810 m", maxVel: "33.2 km/h", stress: "389 AU", status: "OPTIMAL", color: "text-emerald-400" },
+                        { name: "Darnell Sterling", pos: "RW", dist: "8.15 km", hsr: "870 m", maxVel: "34.1 km/h", stress: "425 AU", status: "OPTIMAL", color: "text-emerald-400" },
+                        { name: "Alexandre Da Silva", pos: "CAM", dist: "9.10 km", hsr: "690 m", maxVel: "31.9 km/h", stress: "370 AU", status: "OPTIMAL", color: "text-emerald-400" },
+                        { name: "Harrison Cole", pos: "CDM", dist: "10.45 km", hsr: "540 m", maxVel: "30.5 km/h", stress: "460 AU", status: "HIGH LOAD", color: "text-amber-400" },
+                        { name: "Tariq Lamptey", pos: "RB", dist: "8.90 km", hsr: "880 m", maxVel: "34.4 km/h", stress: "440 AU", status: "OPTIMAL", color: "text-emerald-400" },
+                      ].map((p, idx) => (
+                        <tr key={idx} className="hover:bg-white/5 transition">
+                          <td className="p-3 font-sans font-bold text-white">{p.name}</td>
+                          <td className="p-3 text-slate-400">{p.pos}</td>
+                          <td className="p-3 text-slate-200">{p.dist}</td>
+                          <td className="p-3 text-emerald-400">{p.hsr}</td>
+                          <td className="p-3 text-white font-bold">{p.maxVel}</td>
+                          <td className="p-3 text-slate-300">{p.stress}</td>
+                          <td className={`p-3 font-bold ${p.color}`}>{p.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1669,28 +1771,84 @@ export default function DashboardPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0d141e] border border-white/10 rounded-2xl p-4">
                 <div>
                   <h1 className="text-xl font-bold text-white">Youth Academy & Development Pathways</h1>
-                  <p className="text-xs text-slate-400 mt-0.5">U21, U18, and U16 age group progression with Individual Development Plans (IDPs)</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Category 1 Academy pipeline, bio-banding, and Individual Development Plans (IDPs)</p>
                 </div>
                 <span className="text-xs bg-[#0fa05c]/15 text-[#0fa05c] border border-[#0fa05c]/30 px-3 py-1.5 rounded-lg font-bold">
                   64 Academy Scholars Active
                 </span>
               </div>
 
+              {/* THREE TIERS */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="rounded-xl border border-white/10 bg-[#0d141e] p-5 space-y-2">
-                  <span className="text-[10px] uppercase font-bold text-[#0fa05c] bg-[#0fa05c]/15 px-2 py-0.5 rounded">U21 Development Squad</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-[#0fa05c] bg-[#0fa05c]/15 px-2 py-0.5 rounded">U21 Development Squad</span>
+                    <span className="text-[10px] font-mono text-emerald-400">PL2 Div 1</span>
+                  </div>
                   <h3 className="text-base font-bold text-white">18 Players Enrolled</h3>
                   <p className="text-xs text-slate-400">3 players training with 1st team squad on permanent basis (including S. Eto&apos;o Jr)</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-[#0d141e] p-5 space-y-2">
-                  <span className="text-[10px] uppercase font-bold text-[#0fa05c] bg-[#0fa05c]/15 px-2 py-0.5 rounded">U18 Youth Scholars</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-[#0fa05c] bg-[#0fa05c]/15 px-2 py-0.5 rounded">U18 Youth Scholars</span>
+                    <span className="text-[10px] font-mono text-amber-400">U18 Premier</span>
+                  </div>
                   <h3 className="text-base font-bold text-white">22 Players Enrolled</h3>
                   <p className="text-xs text-slate-400">FA Youth Cup Semifinalists · 4 professional contracts pending sign-off</p>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-[#0d141e] p-5 space-y-2">
-                  <span className="text-[10px] uppercase font-bold text-[#0fa05c] bg-[#0fa05c]/15 px-2 py-0.5 rounded">U16 Foundation Phase</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-[#0fa05c] bg-[#0fa05c]/15 px-2 py-0.5 rounded">U16 Foundation Phase</span>
+                    <span className="text-[10px] font-mono text-cyan-400">Bio-Banded</span>
+                  </div>
                   <h3 className="text-base font-bold text-white">24 Players Enrolled</h3>
                   <p className="text-xs text-slate-400">Bio-banding growth spurt and technical ball-mastery tracking cycles</p>
+                </div>
+              </div>
+
+              {/* HIGH-POTENTIAL ACADEMY TALENTS ROSTER */}
+              <div className="rounded-2xl border border-white/10 bg-[#0d141e] overflow-hidden shadow-xl">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="size-4 text-[#0fa05c]" />
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white">Elite Academy IDP Roster (First-Team Trajectory)</h3>
+                  </div>
+                  <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded">
+                    Category 1 Audited
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-white/5 text-[10px] uppercase font-bold text-slate-400">
+                      <tr>
+                        <th className="p-3">Scholar</th>
+                        <th className="p-3">Age</th>
+                        <th className="p-3">Pos</th>
+                        <th className="p-3">IDP Key Focus Area</th>
+                        <th className="p-3">1st Team Readiness</th>
+                        <th className="p-3">Contract Expiry</th>
+                        <th className="p-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 font-mono">
+                      {[
+                        { name: "Samuel Eto'o Jr", age: 18, pos: "ST", focus: "Pressing trigger anticipation & blindside finishing", readiness: "94%", expiry: "Jun 2028", status: "1st Team Squad", color: "text-emerald-400" },
+                        { name: "Jack Collyer", age: 17, pos: "CDM", focus: "Line-breaking progressive passing under high press", readiness: "89%", expiry: "Jun 2027", status: "Pro Deal Offered", color: "text-cyan-400" },
+                        { name: "Tariq Alexander", age: 19, pos: "CB", focus: "Aerial duel dominance & recovery channel covering", readiness: "92%", expiry: "Jun 2028", status: "On Loan (Lincoln)", color: "text-indigo-400" },
+                        { name: "Noah Diallo", age: 16, pos: "RW", focus: "1v1 deceleration control & final-third crossing accuracy", readiness: "85%", expiry: "Jun 2029", status: "U18 Scholar", color: "text-amber-400" },
+                      ].map((t, idx) => (
+                        <tr key={idx} className="hover:bg-white/5 transition">
+                          <td className="p-3 font-sans font-bold text-white">{t.name}</td>
+                          <td className="p-3 text-slate-300">{t.age}</td>
+                          <td className="p-3 text-emerald-400 font-bold">{t.pos}</td>
+                          <td className="p-3 font-sans text-slate-300">{t.focus}</td>
+                          <td className="p-3 text-[#0fa05c] font-bold">{t.readiness}</td>
+                          <td className="p-3 text-slate-400">{t.expiry}</td>
+                          <td className={`p-3 font-sans font-bold ${t.color}`}>{t.status}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
