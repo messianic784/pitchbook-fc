@@ -5,14 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
-  TrendingUp,
-  HeartPulse,
-  Binoculars,
   ArrowRight,
   Lock,
   Mail,
-  Sparkles,
-  Play,
+  Users,
+  Trophy,
+  Activity,
+  CheckCircle2,
 } from "lucide-react";
 
 interface DemoAccount {
@@ -49,10 +48,11 @@ export default function LoginPage() {
       const promise = video.play();
       if (promise !== undefined) {
         promise.catch(() => {
-          // Autoplay was prevented; video will start on first user interaction
           const handleFirstClick = () => {
-            video.muted = true;
-            video.play();
+            if (video) {
+              video.muted = true;
+              video.play().catch(() => {});
+            }
             window.removeEventListener("click", handleFirstClick);
             window.removeEventListener("touchstart", handleFirstClick);
           };
@@ -82,9 +82,9 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-2 bg-[#060c13]">
-      {/* LEFT COLUMN (Desktop): Stadium Drone Video Background */}
-      <div className="relative hidden lg:flex flex-col justify-between overflow-hidden p-10 text-white">
-        {/* Stadium Video Player */}
+      {/* LEFT COLUMN (Desktop): Crystal Clear Cinematic Stadium Drone Video */}
+      <div className="relative hidden lg:flex flex-col justify-between overflow-hidden p-8 text-white select-none">
+        {/* Stadium Video Player - Clear, Vivid, No Heavy Blur */}
         <div className="absolute inset-0 z-0">
           <video
             ref={desktopVideoRef}
@@ -97,76 +97,68 @@ export default function LoginPage() {
             poster="/pitchbook-stadium-poster.jpg"
             className="w-full h-full object-cover"
           />
-          {/* Gradients for text legibility */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#060c13] via-[#060c13]/60 to-[#060c13]/80 pointer-events-none" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#060c13]/80 via-transparent to-[#060c13]/40 pointer-events-none" />
+          {/* Subtle edge-only vignette so video stays bright, punchy, and fully visible */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/20 pointer-events-none" />
         </div>
 
-        {/* Top Header & Logo */}
-        <div className="relative z-10">
-          <Link href="/welcome" className="inline-flex items-center gap-2.5 font-semibold">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-[#0fa05c] text-white shadow-lg shadow-[#0fa05c]/30">
-              <ShieldCheck className="size-5" />
+        {/* Top Floating Badge */}
+        <div className="relative z-10 flex items-center justify-between">
+          <Link href="/welcome" className="inline-flex items-center gap-2.5 rounded-full bg-black/40 border border-white/20 px-4 py-2 backdrop-blur-sm transition hover:bg-black/60 shadow-lg">
+            <div className="flex size-7 items-center justify-center rounded-full bg-[#0fa05c] text-white shadow">
+              <ShieldCheck className="size-4" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-white">Pitchbook</span>
-            <span className="rounded-full bg-[#0fa05c]/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#0fa05c] border border-[#0fa05c]/30">
-              FC OS
-            </span>
+            <span className="text-sm font-bold tracking-tight text-white">Pitchbook FC</span>
+            <span className="size-1.5 rounded-full bg-[#0fa05c] animate-pulse" />
           </Link>
-        </div>
 
-        {/* Center Copy & Feature Highlights */}
-        <div className="relative z-10 max-w-lg space-y-7 my-auto py-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 backdrop-blur-md px-3 py-1 text-xs text-white/80">
-            <Sparkles className="size-3.5 text-[#0fa05c]" />
-            <span>Modern Football Club Management</span>
-          </div>
-
-          <h2 className="text-4xl font-bold leading-tight tracking-tight text-white">
-            Run your football club. <span className="text-[#0fa05c]">Smarter.</span>
-          </h2>
-
-          <p className="text-base text-white/70 leading-relaxed">
-            Players, staff, scouting, medical, finance and match-day — one unified platform built for how modern clubs operate.
-          </p>
-
-          <div className="space-y-3 pt-2">
-            <div className="flex items-center gap-3.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3 transition-colors hover:bg-white/10">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#0fa05c]/20 text-[#0fa05c] border border-[#0fa05c]/30">
-                <TrendingUp className="size-4.5" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Live performance dashboards</p>
-                <p className="text-xs text-white/60">Automated match ratings, workload, and squad analytics</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3 transition-colors hover:bg-white/10">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#0fa05c]/20 text-[#0fa05c] border border-[#0fa05c]/30">
-                <HeartPulse className="size-4.5" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Medical tracking & availability</p>
-                <p className="text-xs text-white/60">Injury timelines, rehab protocols and return-to-play dates</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3.5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-md p-3 transition-colors hover:bg-white/10">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[#0fa05c]/20 text-[#0fa05c] border border-[#0fa05c]/30">
-                <Binoculars className="size-4.5" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Recruitment & scouting pipeline</p>
-                <p className="text-xs text-white/60">Kanban prospect tracking from discovery to first-team signing</p>
-              </div>
-            </div>
+          <div className="inline-flex items-center gap-2 rounded-full bg-black/40 border border-white/15 px-3 py-1.5 text-[11px] font-mono text-emerald-400 backdrop-blur-sm">
+            <span>RIVERSIDE STADIUM · LIVE SCENE</span>
           </div>
         </div>
 
-        {/* Footer */}
-        <p className="relative z-10 text-xs text-white/40">
-          © 2026 Pitchbook. Built for football clubs, academies and federations worldwide.
-        </p>
+        {/* Center Area: Left Open so the aerial drone sweep & floodlights are completely unblocked! */}
+        <div className="relative z-10 my-auto pointer-events-none">
+          {/* Subtle bottom-anchored heading that doesn't block center screen */}
+        </div>
+
+        {/* Bottom Floating Telemetry Strip */}
+        <div className="relative z-10 space-y-3">
+          <div className="max-w-md">
+            <h2 className="text-3xl font-extrabold tracking-tight text-white drop-shadow-md">
+              Run your football club. <span className="text-[#0fa05c]">Smarter.</span>
+            </h2>
+            <p className="text-xs text-white/80 mt-1 drop-shadow leading-relaxed">
+              Real-time squad readiness, injury tracking, scouting pipeline, and financial telemetry.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2.5 pt-1">
+            <div className="rounded-xl border border-white/20 bg-black/50 p-2.5 backdrop-blur-sm shadow-lg">
+              <span className="block text-[9px] uppercase font-mono tracking-wider text-emerald-400 flex items-center gap-1">
+                <Users className="size-3" /> Squad Fit
+              </span>
+              <span className="block text-base font-bold text-white mt-0.5">85.7%</span>
+              <span className="block text-[10px] text-white/60">24/28 available</span>
+            </div>
+
+            <div className="rounded-xl border border-white/20 bg-black/50 p-2.5 backdrop-blur-sm shadow-lg">
+              <span className="block text-[9px] uppercase font-mono tracking-wider text-amber-300 flex items-center gap-1">
+                <Trophy className="size-3" /> League Pos
+              </span>
+              <span className="block text-base font-bold text-white mt-0.5">#2</span>
+              <span className="block text-[10px] text-white/60">14 wins · +24 GD</span>
+            </div>
+
+            <div className="rounded-xl border border-white/20 bg-black/50 p-2.5 backdrop-blur-sm shadow-lg">
+              <span className="block text-[9px] uppercase font-mono tracking-wider text-cyan-300 flex items-center gap-1">
+                <Activity className="size-3" /> Next Match
+              </span>
+              <span className="block text-base font-bold text-white mt-0.5">Sat 15:00</span>
+              <span className="block text-[10px] text-white/60">vs Lakeside (H)</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* RIGHT COLUMN: Mobile Video Banner + Login Form */}
@@ -184,13 +176,13 @@ export default function LoginPage() {
             poster="/pitchbook-stadium-poster.jpg"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#060c13] via-[#060c13]/40 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#060c13] via-[#060c13]/30 to-transparent pointer-events-none" />
           <div className="absolute bottom-3 left-4 flex items-center gap-2 z-10">
             <div className="flex size-7 items-center justify-center rounded-md bg-[#0fa05c] text-white shadow">
               <ShieldCheck className="size-4" />
             </div>
             <span className="font-bold text-white text-base drop-shadow">Pitchbook FC</span>
-            <span className="text-[10px] text-[#0fa05c] font-semibold uppercase px-1.5 py-0.5 rounded bg-[#0fa05c]/20 border border-[#0fa05c]/40">
+            <span className="text-[10px] text-[#0fa05c] font-semibold uppercase px-2 py-0.5 rounded bg-black/60 border border-[#0fa05c]/40">
               Live
             </span>
           </div>
@@ -199,10 +191,10 @@ export default function LoginPage() {
         {/* Form Container */}
         <div className="flex items-center justify-center p-6 sm:p-10 lg:p-12">
           <div className="w-full max-w-sm space-y-6">
-            <div className="space-y-2 text-center lg:text-left">
-              <h1 className="text-2xl font-bold tracking-tight text-white">Welcome back</h1>
-              <p className="text-sm text-slate-400">
-                Sign in to your club&apos;s workspace or choose a demo role
+            <div className="space-y-1.5 text-center lg:text-left">
+              <h1 className="text-2xl font-bold tracking-tight text-white">Sign In to Club Workspace</h1>
+              <p className="text-xs text-slate-400">
+                Choose a demo role below for 1-click access to the full system
               </p>
             </div>
 
@@ -210,9 +202,9 @@ export default function LoginPage() {
             <div className="rounded-xl border border-white/10 bg-[#0d141e]/90 p-3.5 backdrop-blur-sm shadow-xl">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-semibold text-slate-300">
-                  Demo Accounts
+                  Select Demo Role
                 </p>
-                <span className="text-[10px] text-slate-400 font-mono">pass: password123</span>
+                <span className="text-[10px] text-slate-400 font-mono">1-click login</span>
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 {DEMO_ACCOUNTS.map((acc) => (
@@ -220,7 +212,7 @@ export default function LoginPage() {
                     key={acc.role}
                     type="button"
                     onClick={() => handleSelectDemo(acc)}
-                    className={`rounded-lg border px-2.5 py-1.5 text-left text-xs transition-all ${
+                    className={`rounded-lg border px-2.5 py-1.5 text-left text-xs transition-all cursor-pointer ${
                       selectedRole === acc.role
                         ? "border-[#0fa05c] bg-[#0fa05c]/20 text-white font-semibold shadow-sm"
                         : "border-white/5 bg-[#141d2b] text-slate-300 hover:border-white/20 hover:bg-[#192435]"
@@ -234,8 +226,8 @@ export default function LoginPage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-1.5">
+            <form onSubmit={handleSubmit} className="space-y-3.5">
+              <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
                   <Mail className="size-3.5 text-slate-400" />
                   Email
@@ -250,7 +242,7 @@ export default function LoginPage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
                   <Lock className="size-3.5 text-slate-400" />
                   Password
@@ -268,10 +260,10 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#0fa05c] hover:bg-[#0fa05c]/90 text-white font-semibold py-2.5 px-4 text-sm shadow-lg shadow-[#0fa05c]/25 transition-all disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#0fa05c] hover:bg-[#0fa05c]/90 text-white font-semibold py-2.5 px-4 text-sm shadow-lg shadow-[#0fa05c]/25 transition-all disabled:opacity-50 cursor-pointer"
               >
                 {loading ? (
-                  <span>Signing in...</span>
+                  <span>Opening Workspace...</span>
                 ) : (
                   <>
                     <span>Enter Club Workspace</span>
@@ -282,9 +274,9 @@ export default function LoginPage() {
             </form>
 
             <p className="text-center text-xs text-slate-400">
-              New club?{" "}
+              Need assistance?{" "}
               <Link href="/welcome" className="font-semibold text-[#0fa05c] hover:underline">
-                Explore Platform Overview
+                Explore Documentation
               </Link>
             </p>
           </div>
