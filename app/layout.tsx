@@ -7,6 +7,17 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
   },
+  openGraph: {
+    title: "Pitchbook — Football Club Management",
+    description: "One platform for players, coaches, scouting, performance, medical management, and club operations.",
+    images: ["/pitchbook-stadium-poster.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pitchbook — Football Club Management",
+    description: "One platform for players, coaches, scouting, performance, medical management, and club operations.",
+    images: ["/pitchbook-stadium-poster.jpg"],
+  },
 };
 
 export default function RootLayout({
